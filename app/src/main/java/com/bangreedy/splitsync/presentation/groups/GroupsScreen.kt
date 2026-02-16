@@ -18,9 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
+import androidx.compose.foundation.clickable
+
 
 @Composable
 fun GroupsScreen(
+    onGroupClick: (String) -> Unit,
     vm: GroupsViewModel = koinViewModel()
 ) {
     val state by vm.state.collectAsState()
@@ -59,9 +62,16 @@ fun GroupsScreen(
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             items(state.groups, key = { it.id }) { g ->
-                Text(g.name, style = MaterialTheme.typography.titleMedium)
-                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = g.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onGroupClick(g.id) }
+                        .padding(vertical = 8.dp)
+                )
             }
+
         }
     }
 }
