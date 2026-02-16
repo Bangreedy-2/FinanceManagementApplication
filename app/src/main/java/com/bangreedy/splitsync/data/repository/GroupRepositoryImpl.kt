@@ -17,6 +17,9 @@ class GroupRepositoryImpl(
     override fun observeGroups(): Flow<List<Group>> =
         groupDao.observeGroups().map { list -> list.map { it.toDomain() } }
 
+    override fun observeGroup(groupId: String) =
+        groupDao.observeGroup(groupId).map { it?.toDomain() }
+
     override suspend fun createGroup(name: String): String {
         require(name.isNotBlank()) { "Group name cannot be blank" }
 

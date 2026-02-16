@@ -13,11 +13,9 @@ import org.koin.dsl.module
 val appModule = module {
 
     single {
-        Room.databaseBuilder(
-            get(),
-            AppDatabase::class.java,
-            "splitsync.db"
-        ).build()
+        Room.databaseBuilder(get(), AppDatabase::class.java, "splitsync.db")
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     single { get<AppDatabase>().groupDao() }
@@ -28,4 +26,24 @@ val appModule = module {
     factory { CreateGroupUseCase(get()) }
 
     viewModel { GroupsViewModel(get(), get()) }
+
+    single { get<AppDatabase>().memberDao() }
+
+    single<com.bangreedy.splitsync.domain.repository.MemberRepository> {
+        com.bangreedy.splitsync.data.repository.MemberRepositoryImpl(get())
+    }
+
+    factory { com.bangreedy.splitsync.domain.usecase.ObserveMembersUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.AddMemberUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.ObserveGroupUseCase(get()) }
+
+    viewModel { (groupId: String) ->
+        com.bangreedy.splitsync.presentation.groupdetails.GroupDetailsViewModel(
+            groupId = groupId,
+            observeGroup = get(),
+            observeMembers = get(),
+            addMember = get()
+        )
+    }
+
 }

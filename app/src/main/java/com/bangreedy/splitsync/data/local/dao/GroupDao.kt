@@ -13,6 +13,9 @@ interface GroupDao {
     @Query("SELECT * FROM `groups` WHERE deleted = 0 ORDER BY updatedAt DESC")
     fun observeGroups(): Flow<List<GroupEntity>>
 
+    @Query("SELECT * FROM `groups` WHERE id = :groupId LIMIT 1")
+    fun observeGroup(groupId: String): Flow<GroupEntity?>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(group: GroupEntity)
 }
