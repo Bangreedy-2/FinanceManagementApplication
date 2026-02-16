@@ -46,4 +46,31 @@ val appModule = module {
         )
     }
 
+    single { get<AppDatabase>().expenseDao() }
+
+    single<com.bangreedy.splitsync.domain.repository.ExpenseRepository> {
+        com.bangreedy.splitsync.data.repository.ExpenseRepositoryImpl(get())
+    }
+    factory { com.bangreedy.splitsync.domain.usecase.CreateExpenseEqualSplitUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.ObserveExpensesUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.ComputeGroupBalancesUseCase() }
+
+    viewModel { (groupId: String) ->
+        com.bangreedy.splitsync.presentation.addexpense.AddExpenseViewModel(
+            groupId = groupId,
+            observeMembers = get(),
+            createExpenseEqualSplit = get()
+        )
+    }
+
+    viewModel { (groupId: String) ->
+        com.bangreedy.splitsync.presentation.groupdetails.LedgerViewModel(
+            groupId = groupId,
+            observeMembers = get(),
+            observeExpenses = get(),
+            computeBalances = get()
+        )
+    }
+
+
 }
