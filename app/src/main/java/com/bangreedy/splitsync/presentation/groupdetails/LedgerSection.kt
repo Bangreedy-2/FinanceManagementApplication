@@ -16,15 +16,33 @@ import org.koin.core.parameter.parametersOf
 fun LedgerSection(groupId: String) {
     val vm: LedgerViewModel = koinViewModel(parameters = { parametersOf(groupId) })
     val state by vm.state.collectAsState()
+    val currency = state.expenses.firstOrNull()?.currency ?: "EUR"
+    fun nameOf(memberId: String): String =
+        state.members.firstOrNull { it.id == memberId }?.displayName ?: "Unknown"
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Balances", style = MaterialTheme.typography.titleMedium)
-
-        val currency = state.expenses.firstOrNull()?.currency ?: "EUR"
         state.members.forEach { m ->
             val bal = state.balances[m.id] ?: 0L
             Text("${m.displayName}: ${formatMinor(bal, currency)}")
         }
+        Spacer(Modifier.height(8.dp))
+        Text("Suggested settlements", style = MaterialTheme.typography.titleMedium)
+
+        if (state.suggestions.isEmpty()) {
+            Text("Everyone is settled up 🎉", style = MaterialTheme.typography.bodyMedium)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                state.suggestions.forEach { s ->
+                    Text(
+                        text = "${nameOf(s.fromMemberId)} pays ${nameOf(s.toMemberId)} ${formatMinor(s.amountMinor, currency)}",
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+
+
 
         Spacer(Modifier.height(8.dp))
         Text("Expenses", style = MaterialTheme.typography.titleMedium)

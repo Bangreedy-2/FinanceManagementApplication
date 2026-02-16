@@ -12,19 +12,25 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.bangreedy.splitsync.domain.model.Settlement
+import com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase
 
 data class LedgerUiState(
     val members: List<Member> = emptyList(),
     val expenses: List<Expense> = emptyList(),
-    val balances: Map<String, Long> = emptyMap()
+    val balances: Map<String, Long> = emptyMap(),
+    val suggestions: List<Settlement> = emptyList()
 )
+
 
 class LedgerViewModel(
     private val groupId: String,
     private val observeMembers: ObserveMembersUseCase,
     private val observeExpenses: ObserveExpensesUseCase,
-    private val computeBalances: ComputeGroupBalancesUseCase
+    private val computeBalances: ComputeGroupBalancesUseCase,
+    private val suggestSettlements: SuggestSettlementsUseCase
 ) : ViewModel() {
+
 
     private val _state = MutableStateFlow(LedgerUiState())
     val state: StateFlow<LedgerUiState> = _state.asStateFlow()
@@ -45,5 +51,20 @@ class LedgerViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            observeExpenses(groupId).collect { expenses ->
+                val balances = computeBalances(expenses)
+                val suggestions = suggestSettlements(balances)
+
+                _state.update { s ->
+                    s.copy(
+                        expenses = expenses,
+                        balances = balances,
+                        suggestions = suggestions
+                    )
+                }
+            }
+        }
+
     }
 }

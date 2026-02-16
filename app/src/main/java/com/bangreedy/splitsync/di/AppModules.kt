@@ -68,9 +68,12 @@ val appModule = module {
             groupId = groupId,
             observeMembers = get(),
             observeExpenses = get(),
-            computeBalances = get()
+            computeBalances = get(),
+            suggestSettlements = get()
         )
     }
+
+    factory { com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase() }
 
 
 }
