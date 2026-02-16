@@ -1,4 +1,4 @@
-package com.bangreedy.splitsync
+package com.bangreedy.splitsync.presentation
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,37 +11,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.bangreedy.splitsync.ui.theme.MyApplicationTheme
+import com.bangreedy.splitsync.presentation.groups.GroupsScreen
+import com.bangreedy.splitsync.ui.theme.SplitSyncTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            MyApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Ana",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+            setContent {
+                SplitSyncTheme{
+                    GroupsScreen()
             }
         }
+
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyApplicationTheme {
-        Greeting("Android")
-    }
-}
