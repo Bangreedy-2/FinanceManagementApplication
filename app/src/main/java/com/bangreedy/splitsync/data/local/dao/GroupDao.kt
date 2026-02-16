@@ -18,4 +18,11 @@ interface GroupDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(group: GroupEntity)
+
+    @Query("SELECT * FROM `groups` WHERE syncState = :dirtyState AND deleted = 0")
+    suspend fun getDirtyGroups(dirtyState: Int): List<GroupEntity>
+
+    @Query("UPDATE `groups` SET syncState = :newState WHERE id = :groupId")
+    suspend fun setGroupSyncState(groupId: String, newState: Int)
+
 }

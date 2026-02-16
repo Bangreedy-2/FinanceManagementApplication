@@ -10,6 +10,7 @@ import com.bangreedy.splitsync.presentation.groups.GroupsViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 val appModule = module {
 
@@ -26,7 +27,15 @@ val appModule = module {
     factory { ObserveGroupsUseCase(get()) }
     factory { CreateGroupUseCase(get()) }
 
-    viewModel { GroupsViewModel(get(), get()) }
+    viewModel {
+        GroupsViewModel(
+            observeGroups = get(),
+            createGroup = get(),
+            authRepository = get(),
+            syncCoordinator = get()
+        )
+    }
+
 
     single { get<AppDatabase>().memberDao() }
 
@@ -102,6 +111,7 @@ val appModule = module {
 
 // Firebase
     single { FirebaseAuth.getInstance() }
+    single { FirebaseFirestore.getInstance() }
     single { com.bangreedy.splitsync.data.remote.firestore.auth.FirebaseAuthDataSource(get()) }
 
     single<com.bangreedy.splitsync.domain.repository.AuthRepository> {
@@ -116,7 +126,16 @@ val appModule = module {
 
 // ViewModels
     viewModel { com.bangreedy.splitsync.presentation.auth.AuthViewModel(get(), get()) }
-    viewModel { com.bangreedy.splitsync.presentation.app.AppStateViewModel(get()) }
+    viewModel {
+        com.bangreedy.splitsync.presentation.app.AppStateViewModel(
+            observeAuthState = get(),
+            syncCoordinator = get()
+        )
+    }
+
+
+    single { com.bangreedy.splitsync.data.sync.GroupSyncManager(get(), get()) }
+    single { com.bangreedy.splitsync.data.sync.SyncCoordinator(get()) }
 
 
 
