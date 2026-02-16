@@ -9,6 +9,7 @@ import com.bangreedy.splitsync.domain.usecase.ObserveGroupsUseCase
 import com.bangreedy.splitsync.presentation.groups.GroupsViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
+import com.google.firebase.auth.FirebaseAuth
 
 val appModule = module {
 
@@ -69,11 +70,54 @@ val appModule = module {
             observeMembers = get(),
             observeExpenses = get(),
             computeBalances = get(),
-            suggestSettlements = get()
+            suggestSettlements = get(),
+            observePayments = get()
+        )
+    }
+    single { get<AppDatabase>().paymentDao() }
+    factory { com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase() }
+    factory { com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase() }
+
+// SettleUp VM with params
+    viewModel { (groupId: String, fromId: String, toId: String, amountMinor: Long) ->
+        com.bangreedy.splitsync.presentation.settleup.SettleUpViewModel(
+            groupId = groupId,
+            initialFromId = fromId,
+            initialToId = toId,
+            initialAmountMinor = amountMinor,
+            observeMembers = get(),
+            observeExpenses = get(),
+            computeBalances = get(),
+            suggestSettlements = get(),
+            createPayment = get(),
+            observePayments = get()
         )
     }
 
-    factory { com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase() }
+    single<com.bangreedy.splitsync.domain.repository.PaymentRepository> {
+        com.bangreedy.splitsync.data.repository.PaymentRepositoryImpl(get())
+    }
+    factory { com.bangreedy.splitsync.domain.usecase.ObservePaymentsUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.CreatePaymentUseCase(get()) }
+
+// Firebase
+    single { FirebaseAuth.getInstance() }
+    single { com.bangreedy.splitsync.data.remote.firestore.auth.FirebaseAuthDataSource(get()) }
+
+    single<com.bangreedy.splitsync.domain.repository.AuthRepository> {
+        com.bangreedy.splitsync.data.repository.AuthRepositoryImpl(get())
+    }
+
+// Use cases
+    factory { com.bangreedy.splitsync.domain.usecase.ObserveAuthStateUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.SignInUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.SignUpUseCase(get()) }
+    factory { com.bangreedy.splitsync.domain.usecase.SignOutUseCase(get()) }
+
+// ViewModels
+    viewModel { com.bangreedy.splitsync.presentation.auth.AuthViewModel(get(), get()) }
+    viewModel { com.bangreedy.splitsync.presentation.app.AppStateViewModel(get()) }
+
 
 
 }

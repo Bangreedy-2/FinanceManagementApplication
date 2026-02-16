@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -22,8 +23,12 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun GroupDetailsScreen(groupId: String, onAddExpense: () -> Unit)
- {
+fun GroupDetailsScreen(
+    groupId: String,
+    onAddExpense: () -> Unit,
+    onOpenSettleUp: () -> Unit,
+    onSettleSuggestion: (fromId: String, toId: String, amountMinor: Long) -> Unit
+) {
     val vm: GroupDetailsViewModel = koinViewModel(parameters = { parametersOf(groupId) })
     val state by vm.state.collectAsState()
 
@@ -40,7 +45,10 @@ fun GroupDetailsScreen(groupId: String, onAddExpense: () -> Unit)
             text = state.group?.name ?: "Group",
             style = MaterialTheme.typography.headlineSmall
         )
-        Button(onClick = onAddExpense) { Text("Add Expense") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onAddExpense) { Text("Add Expense") }
+            OutlinedButton(onClick = onOpenSettleUp) { Text("Settle Up") }
+        }
 
 
         Text("Members", style = MaterialTheme.typography.titleMedium)
@@ -81,6 +89,10 @@ fun GroupDetailsScreen(groupId: String, onAddExpense: () -> Unit)
                 Spacer(Modifier.height(10.dp))
             }
         }
-        LedgerSection(groupId = groupId)
+        LedgerSection(
+            groupId = groupId,
+            onSettleSuggestion = onSettleSuggestion
+        )
+
     }
 }
