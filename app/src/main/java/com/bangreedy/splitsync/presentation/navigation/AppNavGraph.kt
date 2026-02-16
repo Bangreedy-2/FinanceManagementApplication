@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.bangreedy.splitsync.presentation.addexpense.AddExpenseScreen
 import com.bangreedy.splitsync.presentation.groups.GroupsScreen
 import com.bangreedy.splitsync.presentation.groupdetails.GroupDetailsScreen
+import com.bangreedy.splitsync.presentation.settleup.SettleUpScreen
 
 object Routes {
     const val GROUPS = "groups"
@@ -16,6 +17,12 @@ object Routes {
     fun groupDetails(groupId: String) = "group/$groupId"
     const val ADD_EXPENSE = "group/{groupId}/add-expense"
     fun addExpense(groupId: String) = "group/$groupId/add-expense"
+    const val SETTLE_UP = "group/{groupId}/settle?fromId={fromId}&toId={toId}&amountMinor={amountMinor}"
+
+    fun settleUp(groupId: String) = "group/$groupId/settle"
+
+    fun settleUpPrefill(groupId: String, fromId: String, toId: String, amountMinor: Long) =
+        "group/$groupId/settle?fromId=$fromId&toId=$toId&amountMinor=$amountMinor"
 }
 
 @Composable
@@ -41,7 +48,11 @@ fun AppNavGraph() {
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
             GroupDetailsScreen(
                 groupId = groupId,
-                onAddExpense = { navController.navigate(Routes.addExpense(groupId)) }
+                onAddExpense = { navController.navigate(Routes.addExpense(groupId)) },
+                onOpenSettleUp = { navController.navigate(Routes.settleUp(groupId)) },
+                onSettleSuggestion = { fromId, toId, amountMinor ->
+                    navController.navigate(Routes.settleUpPrefill(groupId, fromId, toId, amountMinor))
+                }
             )
 
         }
@@ -52,6 +63,30 @@ fun AppNavGraph() {
         ) { backStackEntry ->
             val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
             AddExpenseScreen(groupId = groupId, onBack = { navController.popBackStack() })
+        }
+
+
+        composable(
+            route = Routes.SETTLE_UP,
+            arguments = listOf(
+                navArgument("groupId") { type = NavType.StringType },
+                navArgument("fromId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("toId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("amountMinor") { type = NavType.LongType; defaultValue = 0L }
+            )
+        ) { backStackEntry ->
+            val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
+            val fromId = backStackEntry.arguments?.getString("fromId").orEmpty()
+            val toId = backStackEntry.arguments?.getString("toId").orEmpty()
+            val amountMinor = backStackEntry.arguments?.getLong("amountMinor") ?: 0L
+
+            SettleUpScreen(
+                groupId = groupId,
+                initialFromId = fromId,
+                initialToId = toId,
+                initialAmountMinor = amountMinor,
+                onBack = { navController.popBackStack() }
+            )
         }
 
     }

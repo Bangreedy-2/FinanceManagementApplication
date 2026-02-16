@@ -1,6 +1,7 @@
 package com.bangreedy.splitsync.domain.usecase
 
 import com.bangreedy.splitsync.domain.model.Expense
+import com.bangreedy.splitsync.domain.model.Payment
 
 class ComputeGroupBalancesUseCase {
 
@@ -10,7 +11,11 @@ class ComputeGroupBalancesUseCase {
      *
      * This version uses expenses only (payments/settlements added later).
      */
-    operator fun invoke(expenses: List<Expense>): Map<String, Long> {
+    operator fun invoke(
+        expenses: List<Expense>,
+        payments: List<Payment>
+    ): Map<String, Long>
+{
         val balances = mutableMapOf<String, Long>()
 
         fun add(memberId: String, delta: Long) {
@@ -30,7 +35,13 @@ class ComputeGroupBalancesUseCase {
             // Debug invariant: sums to 0 for each expense
             // payer +amount, participants -sum(owed) => should net 0
         }
+        for (p in payments) {
+            if (p.deleted) continue
+            add(p.fromMemberId, -p.amountMinor)
+            add(p.toMemberId, p.amountMinor)
+        }
 
-        return balances
+
+    return balances
     }
 }

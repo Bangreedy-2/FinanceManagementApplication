@@ -1,5 +1,6 @@
 package com.bangreedy.splitsync.presentation.groupdetails
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,7 +14,8 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 @Composable
-fun LedgerSection(groupId: String) {
+fun LedgerSection(groupId: String,
+                  onSettleSuggestion: (fromId: String, toId: String, amountMinor: Long) -> Unit) {
     val vm: LedgerViewModel = koinViewModel(parameters = { parametersOf(groupId) })
     val state by vm.state.collectAsState()
     val currency = state.expenses.firstOrNull()?.currency ?: "EUR"
@@ -36,9 +38,14 @@ fun LedgerSection(groupId: String) {
                 state.suggestions.forEach { s ->
                     Text(
                         text = "${nameOf(s.fromMemberId)} pays ${nameOf(s.toMemberId)} ${formatMinor(s.amountMinor, currency)}",
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSettleSuggestion(s.fromMemberId, s.toMemberId, s.amountMinor) }
+                            .padding(vertical = 6.dp)
                     )
                 }
+
             }
         }
 

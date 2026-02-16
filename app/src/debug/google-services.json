@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1010103823800",
+    "project_id": "project-09daf9d1-5678-45be-898",
+    "storage_bucket": "project-09daf9d1-5678-45be-898.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1010103823800:android:7ef3381331057dd5d6334d",
+        "android_client_info": {
+          "package_name": "com.bangreedy.splitsync"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA6uKv6oEQ6vRirtcOZcUiVz-zuHZLWWR4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

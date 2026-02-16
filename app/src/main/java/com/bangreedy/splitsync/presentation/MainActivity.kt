@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.bangreedy.splitsync.presentation.app.AppRoot
 import com.bangreedy.splitsync.presentation.groups.GroupsScreen
 import com.bangreedy.splitsync.presentation.navigation.AppNavGraph
 import com.bangreedy.splitsync.ui.theme.SplitSyncTheme
@@ -21,7 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
             setContent {
                 SplitSyncTheme{
-                    AppNavGraph()
+                    AppRoot()
             }
         }
 
