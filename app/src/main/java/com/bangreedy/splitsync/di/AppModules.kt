@@ -2,30 +2,122 @@ package com.bangreedy.splitsync.di
 
 import androidx.room.Room
 import com.bangreedy.splitsync.data.local.db.AppDatabase
-import com.bangreedy.splitsync.data.repository.GroupRepositoryImpl
-import com.bangreedy.splitsync.domain.repository.GroupRepository
-import com.bangreedy.splitsync.domain.usecase.CreateGroupUseCase
-import com.bangreedy.splitsync.domain.usecase.ObserveGroupsUseCase
+import com.bangreedy.splitsync.data.repository.*
+import com.bangreedy.splitsync.data.sync.*
+import com.bangreedy.splitsync.domain.repository.*
+import com.bangreedy.splitsync.domain.usecase.*
+import com.bangreedy.splitsync.presentation.addexpense.AddExpenseViewModel
+import com.bangreedy.splitsync.presentation.app.AppStateViewModel
+import com.bangreedy.splitsync.presentation.auth.AuthViewModel
+import com.bangreedy.splitsync.presentation.groupdetails.GroupDetailsViewModel
+import com.bangreedy.splitsync.presentation.groupdetails.LedgerViewModel
 import com.bangreedy.splitsync.presentation.groups.GroupsViewModel
-import org.koin.androidx.viewmodel.dsl.viewModel
-import org.koin.dsl.module
+import com.bangreedy.splitsync.presentation.settleup.SettleUpViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.dsl.module
 
 val appModule = module {
 
+    // -------------------------
+    // DATABASE
+    // -------------------------
+
     single {
-        Room.databaseBuilder(get(), AppDatabase::class.java, "splitsync.db")
+        Room.databaseBuilder(
+            get(),
+            AppDatabase::class.java,
+            "splitsync.db"
+        )
             .fallbackToDestructiveMigration()
             .build()
     }
 
     single { get<AppDatabase>().groupDao() }
+    single { get<AppDatabase>().memberDao() }
+    single { get<AppDatabase>().expenseDao() }
+    single { get<AppDatabase>().paymentDao() }
+
+    // -------------------------
+    // REPOSITORIES
+    // -------------------------
 
     single<GroupRepository> { GroupRepositoryImpl(get()) }
+    single<MemberRepository> { MemberRepositoryImpl(get()) }
+    single<ExpenseRepository> { ExpenseRepositoryImpl(get()) }
+    single<PaymentRepository> { PaymentRepositoryImpl(get()) }
+
+    single<AuthRepository> {
+        AuthRepositoryImpl(
+            com.bangreedy.splitsync.data.remote.firestore.auth.FirebaseAuthDataSource(get())
+        )
+    }
+
+    // -------------------------
+    // FIREBASE
+    // -------------------------
+
+    single { FirebaseAuth.getInstance() }
+    single { FirebaseFirestore.getInstance() }
+
+    single { com.bangreedy.splitsync.data.remote.firestore.FirestoreGroupDataSource(get()) }
+    single { com.bangreedy.splitsync.data.remote.firestore.FirestoreMemberDataSource(get()) }
+
+
+    // -------------------------
+    // USE CASES
+    // -------------------------
 
     factory { ObserveGroupsUseCase(get()) }
     factory { CreateGroupUseCase(get()) }
+
+    factory { ObserveMembersUseCase(get()) }
+    factory { AddMemberUseCase(get()) }
+    factory { ObserveGroupUseCase(get()) }
+
+    factory { CreateExpenseEqualSplitUseCase(get()) }
+    factory { ObserveExpensesUseCase(get()) }
+
+    factory { ComputeGroupBalancesUseCase() }
+    factory { SuggestSettlementsUseCase() }
+
+    factory { ObservePaymentsUseCase(get()) }
+    factory { CreatePaymentUseCase(get()) }
+
+    factory { ObserveAuthStateUseCase(get()) }
+    factory { SignInUseCase(get()) }
+    factory { SignUpUseCase(get()) }
+    factory { SignOutUseCase(get()) }
+
+    // -------------------------
+    // SYNC LAYER
+    // -------------------------
+
+    single {
+        GroupSyncManager(
+            remote = get(),
+            groupDao = get()
+        )
+    }
+
+    single {
+        MemberSyncManager(
+            remote = get(),
+            memberDao = get()
+        )
+    }
+
+    single {
+        SyncCoordinator(
+            groupSyncManager = get(),
+            memberSyncManager = get()
+        )
+    }
+
+    // -------------------------
+    // VIEW MODELS
+    // -------------------------
 
     viewModel {
         GroupsViewModel(
@@ -36,37 +128,18 @@ val appModule = module {
         )
     }
 
-
-    single { get<AppDatabase>().memberDao() }
-
-    single<com.bangreedy.splitsync.domain.repository.MemberRepository> {
-        com.bangreedy.splitsync.data.repository.MemberRepositoryImpl(get())
-    }
-
-    factory { com.bangreedy.splitsync.domain.usecase.ObserveMembersUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.AddMemberUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.ObserveGroupUseCase(get()) }
-
     viewModel { (groupId: String) ->
-        com.bangreedy.splitsync.presentation.groupdetails.GroupDetailsViewModel(
+        GroupDetailsViewModel(
             groupId = groupId,
             observeGroup = get(),
             observeMembers = get(),
-            addMember = get()
+            addMember = get(),
+            syncCoordinator = get()
         )
     }
 
-    single { get<AppDatabase>().expenseDao() }
-
-    single<com.bangreedy.splitsync.domain.repository.ExpenseRepository> {
-        com.bangreedy.splitsync.data.repository.ExpenseRepositoryImpl(get())
-    }
-    factory { com.bangreedy.splitsync.domain.usecase.CreateExpenseEqualSplitUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.ObserveExpensesUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.ComputeGroupBalancesUseCase() }
-
     viewModel { (groupId: String) ->
-        com.bangreedy.splitsync.presentation.addexpense.AddExpenseViewModel(
+        AddExpenseViewModel(
             groupId = groupId,
             observeMembers = get(),
             createExpenseEqualSplit = get()
@@ -74,7 +147,7 @@ val appModule = module {
     }
 
     viewModel { (groupId: String) ->
-        com.bangreedy.splitsync.presentation.groupdetails.LedgerViewModel(
+        LedgerViewModel(
             groupId = groupId,
             observeMembers = get(),
             observeExpenses = get(),
@@ -83,13 +156,9 @@ val appModule = module {
             observePayments = get()
         )
     }
-    single { get<AppDatabase>().paymentDao() }
-    factory { com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase() }
-    factory { com.bangreedy.splitsync.domain.usecase.SuggestSettlementsUseCase() }
 
-// SettleUp VM with params
     viewModel { (groupId: String, fromId: String, toId: String, amountMinor: Long) ->
-        com.bangreedy.splitsync.presentation.settleup.SettleUpViewModel(
+        SettleUpViewModel(
             groupId = groupId,
             initialFromId = fromId,
             initialToId = toId,
@@ -103,40 +172,17 @@ val appModule = module {
         )
     }
 
-    single<com.bangreedy.splitsync.domain.repository.PaymentRepository> {
-        com.bangreedy.splitsync.data.repository.PaymentRepositoryImpl(get())
-    }
-    factory { com.bangreedy.splitsync.domain.usecase.ObservePaymentsUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.CreatePaymentUseCase(get()) }
-
-// Firebase
-    single { FirebaseAuth.getInstance() }
-    single { FirebaseFirestore.getInstance() }
-    single { com.bangreedy.splitsync.data.remote.firestore.auth.FirebaseAuthDataSource(get()) }
-
-    single<com.bangreedy.splitsync.domain.repository.AuthRepository> {
-        com.bangreedy.splitsync.data.repository.AuthRepositoryImpl(get())
-    }
-
-// Use cases
-    factory { com.bangreedy.splitsync.domain.usecase.ObserveAuthStateUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.SignInUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.SignUpUseCase(get()) }
-    factory { com.bangreedy.splitsync.domain.usecase.SignOutUseCase(get()) }
-
-// ViewModels
-    viewModel { com.bangreedy.splitsync.presentation.auth.AuthViewModel(get(), get()) }
     viewModel {
-        com.bangreedy.splitsync.presentation.app.AppStateViewModel(
+        AuthViewModel(
+            signIn = get(),
+            signUp = get()
+        )
+    }
+
+    viewModel {
+        AppStateViewModel(
             observeAuthState = get(),
             syncCoordinator = get()
         )
     }
-
-
-    single { com.bangreedy.splitsync.data.sync.GroupSyncManager(get(), get()) }
-    single { com.bangreedy.splitsync.data.sync.SyncCoordinator(get()) }
-
-
-
 }

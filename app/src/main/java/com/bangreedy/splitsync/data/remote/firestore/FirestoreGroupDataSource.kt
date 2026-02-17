@@ -1,25 +1,34 @@
 package com.bangreedy.splitsync.data.remote.firestore
 
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.DocumentSnapshot
+import kotlinx.coroutines.tasks.await
 
 class FirestoreGroupDataSource(
     private val firestore: FirebaseFirestore
 ) {
-
-    fun observeGroups(userId: String): Flow<List<Map<String, Any>>> = callbackFlow {
-
-        val listener = firestore
-            .collection("groups")
+    fun listenGroupsForUser(
+        userId: String,
+        onChange: (List<DocumentSnapshot>) -> Unit,
+        onError: (Exception) -> Unit
+    ): ListenerRegistration {
+        return firestore.collection("groups")
             .whereArrayContains("memberUserIds", userId)
             .addSnapshotListener { snapshot, error ->
-                if (error != null) return@addSnapshotListener
-                val docs = snapshot?.documents?.map { it.data ?: emptyMap() } ?: emptyList()
-                trySend(docs)
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+                onChange(snapshot?.documents ?: emptyList())
             }
+    }
 
-        awaitClose { listener.remove() }
+    suspend fun upsertGroup(groupId: String, data: Map<String, Any?>) {
+        firestore.collection("groups")
+            .document(groupId)
+            .set(data, SetOptions.merge())
+            .await()
     }
 }
