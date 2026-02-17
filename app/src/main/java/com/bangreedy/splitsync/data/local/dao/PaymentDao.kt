@@ -15,4 +15,10 @@ interface PaymentDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(payment: PaymentEntity)
+
+    @Query("SELECT * FROM payments WHERE syncState = :dirtyState AND deleted = 0")
+    suspend fun getDirtyPayments(dirtyState: Int): List<PaymentEntity>
+
+    @Query("UPDATE payments SET syncState = :newState WHERE id = :paymentId")
+    suspend fun setPaymentSyncState(paymentId: String, newState: Int)
 }

@@ -2,6 +2,7 @@ package com.bangreedy.splitsync.presentation.addexpense
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangreedy.splitsync.data.sync.SyncCoordinator
 import com.bangreedy.splitsync.domain.model.Member
 import com.bangreedy.splitsync.domain.usecase.CreateExpenseEqualSplitUseCase
 import com.bangreedy.splitsync.domain.usecase.ObserveMembersUseCase
@@ -25,7 +26,8 @@ data class AddExpenseUiState(
 class AddExpenseViewModel(
     private val groupId: String,
     private val observeMembers: ObserveMembersUseCase,
-    private val createExpenseEqualSplit: CreateExpenseEqualSplitUseCase
+    private val createExpenseEqualSplit: CreateExpenseEqualSplitUseCase,
+    private val syncCoordinator: SyncCoordinator
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AddExpenseUiState())
@@ -94,6 +96,8 @@ class AddExpenseViewModel(
                     participantIds = s.participantIds.toList()
                 )
             }.onSuccess {
+                val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                if (uid != null) syncCoordinator.pushNow(uid)
                 _state.update { it.copy(isSaving = false) }
                 onDone()
             }.onFailure { e ->

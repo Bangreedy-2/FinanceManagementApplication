@@ -24,4 +24,15 @@ interface ExpenseDao {
 
     @Query("DELETE FROM expense_splits WHERE expenseId = :expenseId")
     suspend fun deleteSplitsForExpense(expenseId: String)
+
+    @Query("SELECT * FROM expenses WHERE syncState = :dirtyState AND deleted = 0")
+    suspend fun getDirtyExpenses(dirtyState: Int): List<com.bangreedy.splitsync.data.local.entity.ExpenseEntity>
+
+    @Query("UPDATE expenses SET syncState = :newState WHERE id = :expenseId")
+    suspend fun setExpenseSyncState(expenseId: String, newState: Int)
+
+    @Query("SELECT * FROM expense_splits WHERE expenseId = :expenseId")
+    suspend fun getSplitsForExpense(expenseId: String): List<com.bangreedy.splitsync.data.local.entity.ExpenseSplitEntity>
+
 }
+

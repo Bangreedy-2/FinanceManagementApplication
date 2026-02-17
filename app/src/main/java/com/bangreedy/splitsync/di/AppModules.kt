@@ -63,7 +63,8 @@ val appModule = module {
 
     single { com.bangreedy.splitsync.data.remote.firestore.FirestoreGroupDataSource(get()) }
     single { com.bangreedy.splitsync.data.remote.firestore.FirestoreMemberDataSource(get()) }
-
+    single { com.bangreedy.splitsync.data.remote.firestore.FirestoreExpenseDataSource(get()) }
+    single { com.bangreedy.splitsync.data.remote.firestore.FirestorePaymentDataSource(get()) }
 
     // -------------------------
     // USE CASES
@@ -107,11 +108,25 @@ val appModule = module {
             memberDao = get()
         )
     }
+    single {ExpenseSyncManager(
+        groupDataSource = get(),
+        expenseDataSource = get(),
+        expenseDao = get()
+    ) }
 
+    single {
+        PaymentSyncManager(
+            groupDataSource = get(),
+            paymentDataSource = get(),
+            paymentDao = get()
+        )
+    }
     single {
         SyncCoordinator(
             groupSyncManager = get(),
-            memberSyncManager = get()
+            memberSyncManager = get(),
+            expenseSyncManager = get(),
+            paymentSyncManager = get()
         )
     }
 
@@ -142,7 +157,8 @@ val appModule = module {
         AddExpenseViewModel(
             groupId = groupId,
             observeMembers = get(),
-            createExpenseEqualSplit = get()
+            createExpenseEqualSplit = get(),
+            syncCoordinator = get()
         )
     }
 
@@ -168,7 +184,8 @@ val appModule = module {
             computeBalances = get(),
             suggestSettlements = get(),
             createPayment = get(),
-            observePayments = get()
+            observePayments = get(),
+            syncCoordinator = get()
         )
     }
 
