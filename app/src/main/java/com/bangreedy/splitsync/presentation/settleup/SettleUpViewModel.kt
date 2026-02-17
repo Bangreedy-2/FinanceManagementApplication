@@ -2,6 +2,7 @@ package com.bangreedy.splitsync.presentation.settleup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangreedy.splitsync.data.sync.SyncCoordinator
 import com.bangreedy.splitsync.domain.model.Member
 import com.bangreedy.splitsync.domain.model.Settlement
 import com.bangreedy.splitsync.domain.usecase.CreatePaymentUseCase
@@ -40,6 +41,7 @@ class SettleUpViewModel(
     private val suggestSettlements: SuggestSettlementsUseCase,
     private val createPayment: CreatePaymentUseCase,
     private val observePayments: ObservePaymentsUseCase,
+    private val syncCoordinator: SyncCoordinator
     ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettleUpUiState())
@@ -154,6 +156,8 @@ class SettleUpViewModel(
                     currency = s.currency
                 )
             }.onSuccess {
+                val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+                if (uid != null) syncCoordinator.pushNow(uid)
                 _state.update { it.copy(isSaving = false) }
                 onDone()
             }.onFailure { e ->
