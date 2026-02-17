@@ -1,13 +1,22 @@
 package com.bangreedy.splitsync.data.sync
 
 class SyncCoordinator(
-    private val groupSync: GroupSyncManager,
-    // later: memberSync, expenseSync, paymentSync
+    private val groupSyncManager: GroupSyncManager,
+    private val memberSyncManager: MemberSyncManager
 ) {
     fun start(userId: String) {
-        groupSync.start(userId)
+        groupSyncManager.start(userId) { groupIds ->
+            memberSyncManager.startForGroups(groupIds)
+        }
     }
+
     suspend fun pushNow(userId: String) {
-        groupSync.pushDirtyGroups(userId)
+        groupSyncManager.pushDirtyGroups(userId)
+        memberSyncManager.pushDirtyMembers()
+    }
+
+    fun stop() {
+        groupSyncManager.stop()
+        memberSyncManager.stop()
     }
 }

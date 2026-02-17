@@ -3,21 +3,54 @@ package com.bangreedy.splitsync.data.sync
 import com.bangreedy.splitsync.data.local.dao.GroupDao
 import com.bangreedy.splitsync.data.local.entity.GroupEntity
 import com.bangreedy.splitsync.data.local.entity.SyncState
-import com.google.firebase.firestore.FirebaseFirestore
+import com.bangreedy.splitsync.data.remote.firestore.FirestoreGroupDataSource
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import com.google.firebase.firestore.SetOptions
-import kotlinx.coroutines.tasks.await
-
 
 class GroupSyncManager(
-    private val firestore: FirebaseFirestore,
+    private val remote: FirestoreGroupDataSource,
     private val groupDao: GroupDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private var groupsListener: ListenerRegistration? = null
+
+    fun start(userId: String, onGroupIdsChanged: (Set<String>) -> Unit)
+    {
+        // avoid duplicate listeners
+        groupsListener?.remove()
+
+        groupsListener = remote.listenGroupsForUser(
+            userId = userId,
+            onChange = { docs ->
+                docs.forEach { doc ->
+                    val id = doc.id
+                    val name = doc.getString("name") ?: return@forEach
+                    val createdAt = doc.getLong("createdAt") ?: 0L
+                    val updatedAt = doc.getLong("updatedAt") ?: createdAt
+                    val deleted = doc.getBoolean("deleted") ?: false
+                    onGroupIdsChanged(docs.map { it.id }.toSet())
+                    scope.launch {
+                        groupDao.upsert(
+                            GroupEntity(
+                                id = id,
+                                name = name,
+                                createdAt = createdAt,
+                                updatedAt = updatedAt,
+                                deleted = deleted,
+                                syncState = SyncState.SYNCED
+                            )
+                        )
+                    }
+                }
+            },
+            onError = { /* TODO: log */ }
+        )
+    }
+
     suspend fun pushDirtyGroups(userId: String) {
         val dirty = groupDao.getDirtyGroups(SyncState.DIRTY)
 
@@ -27,44 +60,16 @@ class GroupSyncManager(
                 "createdAt" to g.createdAt,
                 "updatedAt" to g.updatedAt,
                 "deleted" to g.deleted,
-                "memberUserIds" to listOf(userId) // IMPORTANT for your query
+                "memberUserIds" to listOf(userId) // required for query
             )
 
-            firestore.collection("groups")
-                .document(g.id)
-                .set(data, SetOptions.merge())
-                .await()
-
+            remote.upsertGroup(g.id, data)
             groupDao.setGroupSyncState(g.id, SyncState.SYNCED)
         }
     }
 
-    fun start(userId: String) {
-        scope.launch {
-            firestore.collection("groups")
-                .whereArrayContains("memberUserIds", userId)
-                .addSnapshotListener { snapshot, _ ->
-                    snapshot?.documents?.forEach { doc ->
-                        val id = doc.id
-                        val name = doc.getString("name") ?: return@forEach
-                        val createdAt = doc.getLong("createdAt") ?: 0L
-                        val updatedAt = doc.getLong("updatedAt") ?: 0L
-                        val deleted = doc.getBoolean("deleted") ?: false
-
-                        scope.launch {
-                            groupDao.upsert(
-                                GroupEntity(
-                                    id = id,
-                                    name = name,
-                                    createdAt = createdAt,
-                                    updatedAt = updatedAt,
-                                    deleted = deleted,
-                                    syncState = SyncState.SYNCED
-                                )
-                            )
-                        }
-                    }
-                }
-        }
+    fun stop() {
+        groupsListener?.remove()
+        groupsListener = null
     }
 }

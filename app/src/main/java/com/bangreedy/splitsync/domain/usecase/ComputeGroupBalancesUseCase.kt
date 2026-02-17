@@ -37,8 +37,8 @@ class ComputeGroupBalancesUseCase {
         }
         for (p in payments) {
             if (p.deleted) continue
-            add(p.fromMemberId, -p.amountMinor)
-            add(p.toMemberId, p.amountMinor)
+            add(p.fromMemberId, p.amountMinor)
+            add(p.toMemberId, -p.amountMinor)
         }
 
 

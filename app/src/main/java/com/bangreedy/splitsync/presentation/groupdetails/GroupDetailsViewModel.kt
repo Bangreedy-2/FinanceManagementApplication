@@ -2,11 +2,13 @@ package com.bangreedy.splitsync.presentation.groupdetails
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bangreedy.splitsync.data.sync.SyncCoordinator
 import com.bangreedy.splitsync.domain.model.Group
 import com.bangreedy.splitsync.domain.model.Member
 import com.bangreedy.splitsync.domain.usecase.AddMemberUseCase
 import com.bangreedy.splitsync.domain.usecase.ObserveGroupUseCase
 import com.bangreedy.splitsync.domain.usecase.ObserveMembersUseCase
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,7 +26,8 @@ class GroupDetailsViewModel(
     private val groupId: String,
     private val observeGroup: ObserveGroupUseCase,
     private val observeMembers: ObserveMembersUseCase,
-    private val addMember: AddMemberUseCase
+    private val addMember: AddMemberUseCase,
+    private val syncCoordinator: SyncCoordinator,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupDetailsUiState())
@@ -46,7 +49,14 @@ class GroupDetailsViewModel(
     fun onAddMember(name: String, email: String?) {
         viewModelScope.launch {
             runCatching { addMember(groupId, name, email) }
-                .onFailure { e -> _state.update { it.copy(error = e.message ?: "Failed to add member") } }
+                .onSuccess {
+                    val uid = FirebaseAuth.getInstance().currentUser?.uid
+                    if (uid != null) syncCoordinator.pushNow(uid)
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(error = e.message ?: "Failed to add member") }
+                }
         }
     }
+
 }
