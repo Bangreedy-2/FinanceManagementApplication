@@ -1,9 +1,8 @@
 package com.bangreedy.splitsync.domain.model
 
-data class Member(
+data class UserProfile(
     val uid: String,
-    val groupId: String,
-    val displayName: String,
     val username: String,
+    val displayName: String,
     val email: String?
 )

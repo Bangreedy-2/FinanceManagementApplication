@@ -20,12 +20,12 @@ fun LedgerSection(groupId: String,
     val state by vm.state.collectAsState()
     val currency = state.expenses.firstOrNull()?.currency ?: "EUR"
     fun nameOf(memberId: String): String =
-        state.members.firstOrNull { it.id == memberId }?.displayName ?: "Unknown"
+        state.members.firstOrNull { it.uid == memberId }?.displayName ?: "Unknown"
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Balances", style = MaterialTheme.typography.titleMedium)
         state.members.forEach { m ->
-            val bal = state.balances[m.id] ?: 0L
+            val bal = state.balances[m.uid] ?: 0L
             Text("${m.displayName}: ${formatMinor(bal, currency)}")
         }
         Spacer(Modifier.height(8.dp))
@@ -56,7 +56,7 @@ fun LedgerSection(groupId: String,
 
         LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
             items(state.expenses, key = { it.id }) { e ->
-                val payerName = state.members.firstOrNull { it.id == e.payerMemberId }?.displayName ?: "Unknown"
+                val payerName = state.members.firstOrNull { it.uid == e.payerMemberId }?.displayName ?: "Unknown"
                 Text("$payerName paid ${formatMinor(e.amountMinor, e.currency)}")
                 e.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 Spacer(Modifier.height(10.dp))

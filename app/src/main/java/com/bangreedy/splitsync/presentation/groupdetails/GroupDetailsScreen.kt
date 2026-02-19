@@ -14,11 +14,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.bangreedy.splitsync.presentation.invites.InviteUserDialog
+import com.google.firebase.auth.FirebaseAuth
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -32,8 +33,13 @@ fun GroupDetailsScreen(
     val vm: GroupDetailsViewModel = koinViewModel(parameters = { parametersOf(groupId) })
     val state by vm.state.collectAsState()
 
-    var memberName by remember { mutableStateOf("") }
-    var memberEmail by remember { mutableStateOf("") }
+    val groupName = state.group?.name ?: "Group"
+    val inviterUid = FirebaseAuth.getInstance().currentUser?.uid
+
+    // Optional: later we’ll pass inviter displayName from your profile (users/{uid})
+    val inviterDisplayName: String? = null
+
+    var showInvite by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -42,57 +48,44 @@ fun GroupDetailsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = state.group?.name ?: "Group",
+            text = groupName,
             style = MaterialTheme.typography.headlineSmall
         )
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onAddExpense) { Text("Add Expense") }
             OutlinedButton(onClick = onOpenSettleUp) { Text("Settle Up") }
+
+            OutlinedButton(
+                enabled = inviterUid != null,
+                onClick = { showInvite = true }
+            ) { Text("Invite") }
         }
 
+        if (showInvite && inviterUid != null) {
+            InviteUserDialog(
+                groupId = groupId,
+                groupName = groupName,
+                inviterUid = inviterUid,
+                inviterDisplayName = inviterDisplayName,
+                onDismiss = { showInvite = false }
+            )
+        }
 
         Text("Members", style = MaterialTheme.typography.titleMedium)
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                modifier = Modifier.weight(1f),
-                value = memberName,
-                onValueChange = { memberName = it },
-                label = { Text("Name") },
-                singleLine = true
-            )
-        }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(
-                modifier = Modifier.weight(1f),
-                value = memberEmail,
-                onValueChange = { memberEmail = it },
-                label = { Text("Email (optional)") },
-                singleLine = true
-            )
-            Button(onClick = {
-                vm.onAddMember(memberName, memberEmail.takeIf { it.isNotBlank() })
-                memberName = ""
-                memberEmail = ""
-            }) { Text("Add") }
-        }
-
-        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-
-        Spacer(Modifier.height(8.dp))
-
+        // ✅ Members list stays (now should represent accepted users)
         LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
-            items(state.members, key = { it.id }) { m ->
+            items(state.members, key = { it.uid }) { m ->
                 Text(m.displayName, style = MaterialTheme.typography.bodyLarge)
                 m.email?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 Spacer(Modifier.height(10.dp))
             }
         }
+
         LedgerSection(
             groupId = groupId,
             onSettleSuggestion = onSettleSuggestion
         )
-
     }
 }

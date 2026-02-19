@@ -53,11 +53,11 @@ fun AddExpenseScreen(
         Text("Participants", style = MaterialTheme.typography.titleMedium)
 
         LazyColumn(modifier = Modifier.weight(1f)) {
-            items(state.members, key = { it.id }) { m ->
+            items(state.members, key = { it.uid }) { m ->
                 ParticipantRow(
                     member = m,
-                    checked = m.id in state.participantIds,
-                    onToggle = { vm.onToggleParticipant(m.id) }
+                    checked = m.uid in state.participantIds,
+                    onToggle = { vm.onToggleParticipant(m.uid) }
                 )
             }
         }
@@ -97,7 +97,7 @@ private fun PayerPicker(
     onPick: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val payerName = members.firstOrNull { it.id == payerId }?.displayName ?: "Select payer"
+    val payerName = members.firstOrNull { it.uid == payerId }?.displayName ?: "Select payer"
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
@@ -113,7 +113,7 @@ private fun PayerPicker(
                 DropdownMenuItem(
                     text = { Text(m.displayName) },
                     onClick = {
-                        onPick(m.id)
+                        onPick(m.uid)
                         expanded = false
                     }
                 )

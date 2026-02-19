@@ -37,8 +37,8 @@ class AddExpenseViewModel(
         viewModelScope.launch {
             observeMembers(groupId).collect { members ->
                 _state.update { s ->
-                    val payer = s.payerMemberId ?: members.firstOrNull()?.id
-                    val participants = if (s.participantIds.isEmpty()) members.map { it.id }.toSet() else s.participantIds
+                    val payer = s.payerMemberId ?: members.firstOrNull()?.uid
+                    val participants = if (s.participantIds.isEmpty()) members.map { it.uid }.toSet() else s.participantIds
                     s.copy(members = members, payerMemberId = payer, participantIds = participants)
                 }
             }

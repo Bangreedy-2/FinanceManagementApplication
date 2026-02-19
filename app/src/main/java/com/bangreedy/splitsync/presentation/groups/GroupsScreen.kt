@@ -1,5 +1,6 @@
 package com.bangreedy.splitsync.presentation.groups
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,19 +12,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
-import androidx.compose.foundation.clickable
 
 
 @Composable
 fun GroupsScreen(
     onGroupClick: (String) -> Unit,
+    onInvitesClick: () -> Unit,
     vm: GroupsViewModel = koinViewModel()
 ) {
     val state by vm.state.collectAsState()
@@ -37,6 +45,9 @@ fun GroupsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text("Groups", style = MaterialTheme.typography.headlineSmall)
+        OutlinedButton(onClick = onInvitesClick) {
+            Text("Invites")
+        }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
@@ -70,6 +81,7 @@ fun GroupsScreen(
                         .clickable { onGroupClick(g.id) }
                         .padding(vertical = 8.dp)
                 )
+                HorizontalDivider()
             }
 
         }

@@ -13,44 +13,34 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class PaymentSyncManager(
-    private val groupDataSource: FirestoreGroupDataSource,
     private val paymentDataSource: FirestorePaymentDataSource,
     private val paymentDao: PaymentDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val paymentListeners = mutableMapOf<String, ListenerRegistration>()
 
-    private var groupsListener: ListenerRegistration? = null
-    private val paymentListeners = mutableMapOf<String, ListenerRegistration>() // groupId -> listener
+    fun onGroupsChanged(groupIds: Set<String>) {
+        groupIds.forEach { groupId ->
+            if (paymentListeners.containsKey(groupId)) return@forEach
+            val reg = paymentDataSource.listenPaymentsForGroup(
+                groupId = groupId,
+                onChange = { docs -> onPaymentsChanged(groupId, docs) },
+                onError = { /* TODO log */ }
+            )
+            paymentListeners[groupId] = reg
+        }
 
-    fun start(userId: String) {
-        if (groupsListener != null) return
-
-        groupsListener = groupDataSource.listenGroupsForUser(
-            userId = userId,
-            onChange = { groupDocs ->
-                val groupIds = groupDocs.map { it.id }.toSet()
-
-                groupIds.forEach { groupId ->
-                    if (paymentListeners.containsKey(groupId)) return@forEach
-
-                    val reg = paymentDataSource.listenPaymentsForGroup(
-                        groupId = groupId,
-                        onChange = { paymentDocs ->
-                            onPaymentsChanged(groupId, paymentDocs)
-                        },
-                        onError = { /* log if you want */ }
-                    )
-                    paymentListeners[groupId] = reg
-                }
-
-                val toRemove = paymentListeners.keys - groupIds
-                toRemove.forEach { gid ->
-                    paymentListeners.remove(gid)?.remove()
-                }
-            },
-            onError = { /* log if you want */ }
-        )
+        val toRemove = paymentListeners.keys - groupIds
+        toRemove.forEach { gid ->
+            paymentListeners.remove(gid)?.remove()
+        }
     }
+
+    fun stop() {
+        paymentListeners.values.forEach { it.remove() }
+        paymentListeners.clear()
+    }
+
 
     suspend fun pushDirtyPayments() {
         val dirty = paymentDao.getDirtyPayments(SyncState.DIRTY)
