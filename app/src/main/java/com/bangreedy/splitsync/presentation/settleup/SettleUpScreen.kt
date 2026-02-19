@@ -80,7 +80,7 @@ private fun PersonPicker(
     onPick: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = members.firstOrNull { it.id == selectedId }?.displayName ?: "Select"
+    val selectedName = members.firstOrNull { it.uid == selectedId }?.displayName ?: "Select"
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
@@ -96,7 +96,7 @@ private fun PersonPicker(
                 DropdownMenuItem(
                     text = { Text(m.displayName) },
                     onClick = {
-                        onPick(m.id)
+                        onPick(m.uid)
                         expanded = false
                     }
                 )

@@ -1,16 +1,13 @@
 package com.bangreedy.splitsync.data.mapper
 
-import com.bangreedy.splitsync.data.local.entity.MemberEntity
+import com.bangreedy.splitsync.data.local.dao.MemberJoinedRow
 import com.bangreedy.splitsync.domain.model.Member
 
-fun MemberEntity.toDomain(): Member =
+fun MemberJoinedRow.toDomain(): Member =
     Member(
-        id = id,
+        uid = uid,
         groupId = groupId,
         displayName = displayName,
-        userId = userId,
-        email = email,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-        deleted = deleted
+        username = username,
+        email = email
     )

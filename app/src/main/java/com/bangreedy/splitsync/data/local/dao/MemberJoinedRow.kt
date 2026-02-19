@@ -1,6 +1,6 @@
-package com.bangreedy.splitsync.domain.model
+package com.bangreedy.splitsync.data.local.dao
 
-data class Member(
+data class MemberJoinedRow(
     val uid: String,
     val groupId: String,
     val displayName: String,

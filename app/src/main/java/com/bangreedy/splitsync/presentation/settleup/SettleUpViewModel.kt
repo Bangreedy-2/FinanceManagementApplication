@@ -55,8 +55,8 @@ class SettleUpViewModel(
         viewModelScope.launch {
             observeMembers(groupId).collect { members ->
                 _state.update { s ->
-                    val fallbackFrom = members.firstOrNull()?.id.orEmpty()
-                    val fallbackTo = members.getOrNull(1)?.id.orEmpty()
+                    val fallbackFrom = members.firstOrNull()?.uid.orEmpty()
+                    val fallbackTo = members.getOrNull(1)?.uid.orEmpty()
 
                     val from = initialFromId.ifBlank { s.fromId.ifBlank { fallbackFrom } }
                     val to = initialToId.ifBlank { s.toId.ifBlank { fallbackTo } }

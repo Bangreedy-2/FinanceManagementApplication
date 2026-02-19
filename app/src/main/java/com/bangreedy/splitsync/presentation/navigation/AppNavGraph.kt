@@ -23,6 +23,7 @@ object Routes {
 
     fun settleUpPrefill(groupId: String, fromId: String, toId: String, amountMinor: Long) =
         "group/$groupId/settle?fromId=$fromId&toId=$toId&amountMinor=$amountMinor"
+    const val INVITES = "invites"
 }
 
 @Composable
@@ -37,6 +38,9 @@ fun AppNavGraph() {
             GroupsScreen(
                 onGroupClick = { groupId ->
                     navController.navigate(Routes.groupDetails(groupId))
+                },
+                onInvitesClick = {
+                    navController.navigate(Routes.INVITES)
                 }
             )
         }
@@ -87,6 +91,12 @@ fun AppNavGraph() {
                 initialAmountMinor = amountMinor,
                 onBack = { navController.popBackStack() }
             )
+        }
+        composable(Routes.INVITES) {
+            val uid = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            if (uid != null) {
+                com.bangreedy.splitsync.presentation.invites.InvitesScreen(myUid = uid)
+            }
         }
 
     }
