@@ -5,7 +5,8 @@ class SyncCoordinator(
     private val groupMemberSyncManager: GroupMemberSyncManager,
     private val userProfileSyncManager: UserProfileSyncManager,
     private val expenseSyncManager: ExpenseSyncManager,
-    private val paymentSyncManager: PaymentSyncManager
+    private val paymentSyncManager: PaymentSyncManager,
+    private val notificationSyncManager: NotificationSyncManager
 ) {
     fun start(userId: String) {
         groupSyncManager.start(userId) { groupIds ->
@@ -16,6 +17,7 @@ class SyncCoordinator(
             // profiles depend on group_members (uids) so we trigger refresh after groups updated.
             userProfileSyncManager.onGroupsChanged(groupIds)
         }
+        notificationSyncManager.start(userId)
     }
 
     suspend fun pushNow(userId: String) {
@@ -29,6 +31,7 @@ class SyncCoordinator(
         groupMemberSyncManager.stop()
         expenseSyncManager.stop()
         paymentSyncManager.stop()
+        notificationSyncManager.stop()
         // userProfileSyncManager doesn't hold listeners in this design
     }
 }

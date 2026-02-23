@@ -66,9 +66,16 @@ class InvitesViewModel(
         }
     }
 
-    fun accept(inviteId: String, groupId: String) = viewModelScope.launch {
-        runCatching { acceptInvite(myUid, inviteId, groupId) }
-            .onFailure { e -> _state.update { it.copy(error = e.message ?: "Failed") } }
+    fun accept(invite: Invite) = viewModelScope.launch {
+        runCatching {
+            acceptInvite(
+                myUid = myUid,
+                inviteId = invite.inviteId,
+                groupId = invite.groupId,
+                inviterUid = invite.inviterUid,
+                groupName = invite.groupName
+            )
+        }.onFailure { e -> _state.update { it.copy(error = e.message ?: "Failed") } }
     }
 
     fun decline(inviteId: String) = viewModelScope.launch {

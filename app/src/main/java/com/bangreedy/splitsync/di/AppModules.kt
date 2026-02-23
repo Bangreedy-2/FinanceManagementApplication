@@ -15,6 +15,7 @@ import com.bangreedy.splitsync.presentation.groupdetails.LedgerViewModel
 import com.bangreedy.splitsync.presentation.groups.GroupsViewModel
 import com.bangreedy.splitsync.presentation.invites.InvitesViewModel
 import com.bangreedy.splitsync.presentation.invites.SendInviteViewModel
+import com.bangreedy.splitsync.presentation.notifications.NotificationsViewModel
 import com.bangreedy.splitsync.presentation.profile.CreateProfileViewModel
 import com.bangreedy.splitsync.presentation.profile.ProfileGateViewModel
 import com.bangreedy.splitsync.presentation.settleup.SettleUpViewModel
@@ -42,11 +43,9 @@ val appModule = module {
     single { get<AppDatabase>().groupDao() }
     single { get<AppDatabase>().expenseDao() }
     single { get<AppDatabase>().paymentDao() }
-
-    // ✅ New tables for "members = users"
     single { get<AppDatabase>().groupMemberDao() }
     single { get<AppDatabase>().userProfileDao() }
-
+    single { get<AppDatabase>().notificationDao() }
     // -------------------------
     // FIREBASE
     // -------------------------
@@ -60,7 +59,6 @@ val appModule = module {
 
     single { FirestoreGroupDataSource(get()) }
 
-    // ✅ Replaces FirestoreMemberDataSource for real membership
     single { FirestoreGroupMemberDataSource(get()) }
 
     single { FirestoreExpenseDataSource(get()) }
@@ -73,6 +71,9 @@ val appModule = module {
     // Invites + lookup
     single { FirestoreUserLookupDataSource(get()) }
     single { FirestoreInviteDataSource(get()) }
+
+    // Notifications
+    single { FirestoreNotificationDataSource(get()) }
 
     // -------------------------
     // REPOSITORIES
@@ -98,7 +99,11 @@ val appModule = module {
     }
 
     single<InviteRepository> {
-        InviteRepositoryImpl(get(), get())
+        InviteRepositoryImpl(get(), get(), get())
+    }
+
+    single<NotificationRepository> {
+        NotificationRepositoryImpl(get(), get())
     }
 
     // -------------------------
@@ -119,7 +124,7 @@ val appModule = module {
     factory { SuggestSettlementsUseCase() }
 
     factory { ObservePaymentsUseCase(get()) }
-    factory { CreatePaymentUseCase(get()) }
+    factory { CreatePaymentUseCase(get(), get()) }
 
     factory { ObserveAuthStateUseCase(get()) }
     factory { SignInUseCase(get()) }
@@ -137,6 +142,11 @@ val appModule = module {
     factory { AcceptInviteUseCase(get()) }
     factory { DeclineInviteUseCase(get()) }
 
+    //Notifications
+    factory { ObserveNotificationsUseCase(get()) }
+    factory { MarkNotificationReadUseCase(get()) }
+    factory { ObserveUnreadNotificationsCountUseCase(get()) }
+
     // -------------------------
     // SYNC LAYER (NEW PIPELINE)
     // -------------------------
@@ -151,7 +161,8 @@ val appModule = module {
     single {
         GroupMemberSyncManager(
             remote = get(),
-            groupMemberDao = get()
+            groupMemberDao = get(),
+            userProfileSyncManager = get()
         )
     }
 
@@ -179,12 +190,20 @@ val appModule = module {
     }
 
     single {
+        NotificationSyncManager(
+            remote = get(),
+            dao = get()
+        )
+    }
+
+    single {
         SyncCoordinator(
             groupSyncManager = get(),
             groupMemberSyncManager = get(),
             userProfileSyncManager = get(),
             expenseSyncManager = get(),
-            paymentSyncManager = get()
+            paymentSyncManager = get(),
+            notificationSyncManager = get()
         )
     }
 
@@ -197,7 +216,8 @@ val appModule = module {
             observeGroups = get(),
             createGroup = get(),
             authRepository = get(),
-            syncCoordinator = get()
+            syncCoordinator = get(),
+            observeUnreadNotificationsCount = get()
         )
     }
 
@@ -257,7 +277,8 @@ val appModule = module {
     viewModel {
         AppStateViewModel(
             observeAuthState = get(),
-            syncCoordinator = get()
+            syncCoordinator = get(),
+            expenseDao = get()
         )
     }
 
@@ -276,5 +297,14 @@ val appModule = module {
             userProfileRemote = get()
         )
     }
+
+    viewModel { (uid: String) ->
+        NotificationsViewModel(
+            uid,
+            observeNotifications = get(),
+            markRead = get(),
+        )
+    }
+
 
 }
