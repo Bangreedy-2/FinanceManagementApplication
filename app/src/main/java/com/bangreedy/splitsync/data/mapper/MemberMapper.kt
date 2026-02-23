@@ -9,5 +9,6 @@ fun MemberJoinedRow.toDomain(): Member =
         groupId = groupId,
         displayName = displayName,
         username = username,
-        email = email
+        email = email,
+        photoUrl = photoUrl
     )

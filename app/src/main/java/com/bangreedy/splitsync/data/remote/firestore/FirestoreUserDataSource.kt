@@ -55,6 +55,16 @@ class FirestoreUserDataSource(
             val now = System.currentTimeMillis()
             val createdAt = currentUserSnap.getLong("createdAt") ?: now
 
+            val defaultCurrency = currentUserSnap.getString("defaultCurrency") ?: "USD"
+            val notificationPrefs = currentUserSnap.get("notificationPrefs") ?: mapOf(
+                "pushEnabled" to true,
+                "emailEnabled" to true,
+                "invitePush" to true,
+                "inviteEmail" to true,
+                "settlementPush" to true,
+                "settlementEmail" to true
+            )
+
             tx.set(usernamesRef, mapOf("uid" to uid))
 
             tx.set(
@@ -65,10 +75,17 @@ class FirestoreUserDataSource(
                     "usernameLower" to usernameLower,
                     "displayName" to displayName.trim(),
                     "email" to normalizedEmail,
+                    "photoUrl" to currentUserSnap.getString("photoUrl"),
+                    "defaultCurrency" to defaultCurrency,
+                    "notificationPrefs" to notificationPrefs,
                     "createdAt" to createdAt,
                     "updatedAt" to now
                 )
             )
         }.await()
+    }
+
+    suspend fun updateProfile(uid: String, updates: Map<String, Any?>) {
+        firestore.collection("users").document(uid).update(updates).await()
     }
 }

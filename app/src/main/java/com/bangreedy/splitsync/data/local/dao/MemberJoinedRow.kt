@@ -5,5 +5,6 @@ data class MemberJoinedRow(
     val groupId: String,
     val displayName: String,
     val username: String,
-    val email: String?
+    val email: String?,
+    val photoUrl: String?
 )

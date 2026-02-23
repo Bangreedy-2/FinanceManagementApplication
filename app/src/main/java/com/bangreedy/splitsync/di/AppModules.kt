@@ -7,6 +7,7 @@ import com.bangreedy.splitsync.data.repository.*
 import com.bangreedy.splitsync.data.sync.*
 import com.bangreedy.splitsync.domain.repository.*
 import com.bangreedy.splitsync.domain.usecase.*
+import com.bangreedy.splitsync.presentation.account.AccountViewModel
 import com.bangreedy.splitsync.presentation.addexpense.AddExpenseViewModel
 import com.bangreedy.splitsync.presentation.app.AppStateViewModel
 import com.bangreedy.splitsync.presentation.auth.AuthViewModel
@@ -305,6 +306,8 @@ val appModule = module {
             markRead = get(),
         )
     }
+
+    viewModel { AccountViewModel(get(), get()) }
 
 
 }

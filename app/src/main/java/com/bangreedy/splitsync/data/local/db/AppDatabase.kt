@@ -26,7 +26,7 @@ import com.bangreedy.splitsync.data.local.dao.NotificationDao
         PaymentEntity::class,
         NotificationEntity::class // ✅ add
     ],
-    version = 7, // bump by +1
+    version = 8, // bump by +1
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

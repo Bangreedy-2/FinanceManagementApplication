@@ -31,7 +31,8 @@ interface GroupMemberDao {
         gm.groupId as groupId,
         up.displayName as displayName,
         up.username as username,
-        up.email as email
+        up.email as email,
+        up.photoUrl as photoUrl
     FROM group_members gm
     JOIN user_profiles up ON up.uid = gm.uid
     WHERE gm.groupId = :groupId AND gm.deleted = 0

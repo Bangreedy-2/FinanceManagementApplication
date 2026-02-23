@@ -29,6 +29,17 @@ class UserProfileSyncManager(
                 val username = (data["username"] as? String).orEmpty()
                 val displayName = (data["displayName"] as? String).orEmpty()
                 val email = data["email"] as? String
+                val photoUrl = data["photoUrl"] as? String
+                val defaultCurrency = (data["defaultCurrency"] as? String) ?: "USD"
+
+                val prefs = (data["notificationPrefs"] as? Map<String, Boolean>) ?: emptyMap()
+                val notifyPush = prefs["pushEnabled"] ?: true
+                val notifyEmail = prefs["emailEnabled"] ?: true
+                val notifyInvitePush = prefs["invitePush"] ?: true
+                val notifyInviteEmail = prefs["inviteEmail"] ?: true
+                val notifySettlementPush = prefs["settlementPush"] ?: true
+                val notifySettlementEmail = prefs["settlementEmail"] ?: true
+
                 val createdAt = (data["createdAt"] as? Number)?.toLong() ?: 0L
                 val updatedAt = (data["updatedAt"] as? Number)?.toLong() ?: createdAt
                 val deleted = data["deleted"] as? Boolean ?: false
@@ -41,6 +52,14 @@ class UserProfileSyncManager(
                         username = username,
                         displayName = displayName,
                         email = email,
+                        photoUrl = photoUrl,
+                        defaultCurrency = defaultCurrency,
+                        notifyPush = notifyPush,
+                        notifyEmail = notifyEmail,
+                        notifyInvitePush = notifyInvitePush,
+                        notifyInviteEmail = notifyInviteEmail,
+                        notifySettlementPush = notifySettlementPush,
+                        notifySettlementEmail = notifySettlementEmail,
                         createdAt = createdAt,
                         updatedAt = updatedAt,
                         deleted = deleted,
