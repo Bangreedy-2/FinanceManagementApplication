@@ -28,7 +28,7 @@ fun InvitesScreen(
                         Text(inv.groupName.ifBlank { "Group" }, style = MaterialTheme.typography.titleMedium)
                         val inviterName = state.inviterNames[inv.inviterUid]
                         Text("From: ${inviterName ?: "Unknown user"}")
-                        if (inviterName == null) {
+                         if (inviterName == null) {
                             Text(inv.inviterUid, style = MaterialTheme.typography.bodySmall)
                         }
 
@@ -36,7 +36,7 @@ fun InvitesScreen(
 
                         if (inv.status == "pending") {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { vm.accept(inv.inviteId, inv.groupId) }) { Text("Accept") }
+                                Button(onClick = { vm.accept(inv) }) { Text("Accept") }
                                 OutlinedButton(onClick = { vm.decline(inv.inviteId) }) { Text("Decline") }
                             }
                         }

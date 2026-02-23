@@ -13,6 +13,8 @@ import com.bangreedy.splitsync.data.local.entity.GroupEntity
 import com.bangreedy.splitsync.data.local.entity.GroupMemberEntity
 import com.bangreedy.splitsync.data.local.entity.PaymentEntity
 import com.bangreedy.splitsync.data.local.entity.UserProfileEntity
+import com.bangreedy.splitsync.data.local.entity.NotificationEntity
+import com.bangreedy.splitsync.data.local.dao.NotificationDao
 
 @Database(
     entities = [
@@ -21,9 +23,10 @@ import com.bangreedy.splitsync.data.local.entity.UserProfileEntity
         UserProfileEntity::class,
         ExpenseEntity::class,
         ExpenseSplitEntity::class,
-        PaymentEntity::class
+        PaymentEntity::class,
+        NotificationEntity::class // ✅ add
     ],
-    version = 6,
+    version = 7, // bump by +1
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,4 +35,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun expenseDao(): ExpenseDao
     abstract fun paymentDao(): PaymentDao
+    abstract fun notificationDao(): NotificationDao // ✅ add
 }

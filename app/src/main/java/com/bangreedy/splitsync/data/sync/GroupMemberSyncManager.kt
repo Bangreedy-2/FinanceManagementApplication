@@ -13,7 +13,8 @@ import kotlinx.coroutines.launch
 
 class GroupMemberSyncManager(
     private val remote: FirestoreGroupMemberDataSource,
-    private val groupMemberDao: GroupMemberDao
+    private val groupMemberDao: GroupMemberDao,
+    private val userProfileSyncManager: UserProfileSyncManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val memberListeners = mutableMapOf<String, ListenerRegistration>() // groupId -> reg
@@ -49,7 +50,6 @@ class GroupMemberSyncManager(
             val role = doc.getString("role") ?: "member"
             val joinedAt = doc.getLong("joinedAt") ?: 0L
             val deleted = doc.getBoolean("deleted") ?: false
-
             GroupMemberEntity(
                 groupId = groupId,
                 uid = uid,
@@ -59,9 +59,11 @@ class GroupMemberSyncManager(
                 syncState = SyncState.SYNCED
             )
         }
+        val uids = entities.map { it.uid }
 
         scope.launch {
             groupMemberDao.upsertAll(entities)
         }
+        userProfileSyncManager.refreshUids(uids)
     }
 }

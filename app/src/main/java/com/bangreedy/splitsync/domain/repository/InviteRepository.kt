@@ -14,6 +14,13 @@ interface InviteRepository {
         input: String
     )
 
-    suspend fun acceptInvite(myUid: String, inviteId: String, groupId: String)
+    suspend fun acceptInvite(
+        myUid: String,
+        inviteId: String,
+        groupId: String,
+        inviterUid: String,
+        groupName: String
+    )
+
     suspend fun declineInvite(myUid: String, inviteId: String)
 }

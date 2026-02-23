@@ -34,5 +34,23 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense_splits WHERE expenseId = :expenseId")
     suspend fun getSplitsForExpense(expenseId: String): List<com.bangreedy.splitsync.data.local.entity.ExpenseSplitEntity>
 
+    @Query("""
+    SELECT COUNT(*)
+    FROM expenses e
+    LEFT JOIN user_profiles up ON up.uid = e.payerMemberId
+    WHERE e.deleted = 0
+      AND e.payerMemberId IS NOT NULL
+      AND e.payerMemberId != ''
+      AND up.uid IS NULL
+""")
+    suspend fun countExpensesWithMissingPayerProfiles(): Int
+
+    @Query("""
+    SELECT COUNT(*)
+    FROM expense_splits es
+    LEFT JOIN user_profiles up ON up.uid = es.memberId
+    WHERE up.uid IS NULL
+""")
+    suspend fun countSplitsWithMissingProfiles(): Int
 }
 
