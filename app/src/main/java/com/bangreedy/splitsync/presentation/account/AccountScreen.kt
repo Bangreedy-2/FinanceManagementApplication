@@ -1,5 +1,8 @@
 package com.bangreedy.splitsync.presentation.account
 
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -8,15 +11,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import com.bangreedy.splitsync.domain.model.NotificationPrefs
+import coil.compose.AsyncImage
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -25,6 +28,14 @@ fun AccountScreen(
 ) {
     val userProfile by vm.userProfile.collectAsState()
     val scrollState = rememberScrollState()
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            vm.updateProfilePhoto(uri)
+        }
+    }
 
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showEditUsernameDialog by remember { mutableStateOf(false) }
@@ -47,7 +58,6 @@ fun AccountScreen(
         EditUsernameDialog(
             initialUsername = currentUsername,
             onDismiss = { showEditUsernameDialog = false },
-            onStartCheck = { username -> vm.checkUsernameAvailability(username) },
             onConfirm = { newUsername, onSuccess, onError ->
                 vm.updateUsername(newUsername, onSuccess, onError)
             }
@@ -81,22 +91,41 @@ fun AccountScreen(
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable {
+                            photoPickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (profile.photoUrl != null) {
-                        // In real app use Coil/Glide
+                        AsyncImage(
+                            model = profile.photoUrl,
+                            contentDescription = "Profile Photo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
                         Text(
                             text = profile.displayName.take(1).uppercase(),
                             style = MaterialTheme.typography.displayMedium,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                    } else {
+                    }
+
+                    // Overlay for edit indication
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Photo",
+                            tint = MaterialTheme.colorScheme.surface,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
@@ -271,13 +300,11 @@ fun EditNameDialog(
 fun EditUsernameDialog(
     initialUsername: String,
     onDismiss: () -> Unit,
-    onStartCheck: suspend (String) -> Boolean,
     onConfirm: (String, () -> Unit, (String) -> Unit) -> Unit
 ) {
     var username by remember { mutableStateOf(initialUsername) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     AlertDialog(
         onDismissRequest = onDismiss,

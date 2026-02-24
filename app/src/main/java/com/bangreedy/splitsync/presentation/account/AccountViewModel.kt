@@ -1,9 +1,11 @@
 package com.bangreedy.splitsync.presentation.account
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bangreedy.splitsync.domain.model.NotificationPrefs
 import com.bangreedy.splitsync.domain.model.UserProfile
+import com.bangreedy.splitsync.domain.repository.StorageRepository
 import com.bangreedy.splitsync.domain.repository.UserProfileRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +16,7 @@ import kotlinx.coroutines.launch
 
 class AccountViewModel(
     private val repo: UserProfileRepository,
+    private val storageRepo: StorageRepository,
     private val auth: FirebaseAuth
 ) : ViewModel() {
 
@@ -50,6 +53,19 @@ class AccountViewModel(
         val uid = auth.currentUser?.uid ?: return
         viewModelScope.launch {
             repo.updateNotificationPrefs(uid, prefs)
+        }
+    }
+
+    fun updateProfilePhoto(uri: Uri) {
+        val uid = auth.currentUser?.uid ?: return
+        viewModelScope.launch {
+            try {
+                val downloadUrl = storageRepo.uploadUserPhoto(uid, uri)
+                repo.updateProfile(uid, displayName = null, photoUrl = downloadUrl)
+            } catch (e: Exception) {
+                // simple error handling
+                e.printStackTrace()
+            }
         }
     }
 

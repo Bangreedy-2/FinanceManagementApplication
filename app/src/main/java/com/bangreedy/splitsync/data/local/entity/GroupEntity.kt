@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class GroupEntity(
     @PrimaryKey val id: String,
     val name: String,
+    val photoUrl: String? = null,
     val createdAt: Long,
     val updatedAt: Long,
     val deleted: Boolean,

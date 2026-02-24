@@ -30,6 +30,7 @@ class GroupSyncManager(
                 docs.forEach { doc ->
                     val id = doc.id
                     val name = doc.getString("name") ?: return@forEach
+                    val photoUrl = doc.getString("photoUrl")
                     val createdAt = doc.getLong("createdAt") ?: 0L
                     val updatedAt = doc.getLong("updatedAt") ?: createdAt
                     val deleted = doc.getBoolean("deleted") ?: false
@@ -39,6 +40,7 @@ class GroupSyncManager(
                             GroupEntity(
                                 id = id,
                                 name = name,
+                                photoUrl = photoUrl,
                                 createdAt = createdAt,
                                 updatedAt = updatedAt,
                                 deleted = deleted,
@@ -59,6 +61,7 @@ class GroupSyncManager(
         for (g in dirty) {
             val data = mapOf(
                 "name" to g.name,
+                "photoUrl" to g.photoUrl,
                 "createdAt" to g.createdAt,
                 "updatedAt" to g.updatedAt,
                 "deleted" to g.deleted,

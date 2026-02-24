@@ -22,6 +22,7 @@ import com.bangreedy.splitsync.presentation.profile.ProfileGateViewModel
 import com.bangreedy.splitsync.presentation.settleup.SettleUpViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -53,6 +54,7 @@ val appModule = module {
 
     single { FirebaseAuth.getInstance() }
     single { FirebaseFirestore.getInstance() }
+    single { FirebaseStorage.getInstance() }
 
     // -------------------------
     // FIRESTORE DATA SOURCES
@@ -80,7 +82,7 @@ val appModule = module {
     // REPOSITORIES
     // -------------------------
 
-    single<GroupRepository> { GroupRepositoryImpl(get()) }
+    single<GroupRepository> { GroupRepositoryImpl(get(), get()) }
 
     // ✅ MemberRepository now reads from group_members JOIN user_profiles (via GroupMemberDao)
     single<MemberRepository> { MemberRepositoryImpl(get()) }
@@ -106,6 +108,8 @@ val appModule = module {
     single<NotificationRepository> {
         NotificationRepositoryImpl(get(), get())
     }
+
+    single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
 
     // -------------------------
     // USE CASES
@@ -227,9 +231,9 @@ val appModule = module {
         GroupDetailsViewModel(
             groupId = groupId,
             observeGroup = get(),
-            observeMembers = get()
+            observeMembers = get(),
+            repo = get()
         )
-
     }
 
     viewModel { (groupId: String) ->
@@ -307,7 +311,5 @@ val appModule = module {
         )
     }
 
-    viewModel { AccountViewModel(get(), get()) }
-
-
+    viewModel { AccountViewModel(get(), get(), get()) }
 }
