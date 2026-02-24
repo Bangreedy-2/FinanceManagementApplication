@@ -3,6 +3,7 @@ package com.bangreedy.splitsync.di
 import androidx.room.Room
 import com.bangreedy.splitsync.data.local.db.AppDatabase
 import com.bangreedy.splitsync.data.remote.firestore.*
+import com.bangreedy.splitsync.data.remote.exchange.*
 import com.bangreedy.splitsync.data.repository.*
 import com.bangreedy.splitsync.data.sync.*
 import com.bangreedy.splitsync.domain.repository.*
@@ -48,6 +49,7 @@ val appModule = module {
     single { get<AppDatabase>().groupMemberDao() }
     single { get<AppDatabase>().userProfileDao() }
     single { get<AppDatabase>().notificationDao() }
+    single { get<AppDatabase>().fxRateDao() }
     // -------------------------
     // FIREBASE
     // -------------------------
@@ -77,6 +79,12 @@ val appModule = module {
 
     // Notifications
     single { FirestoreNotificationDataSource(get()) }
+
+    // -------------------------
+    // EXCHANGE RATE DATA SOURCES
+    // -------------------------
+
+    single<FxRemoteDataSource> { FawazExchangeApiDataSource() }
 
     // -------------------------
     // REPOSITORIES
@@ -110,6 +118,8 @@ val appModule = module {
     }
 
     single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
+
+    single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(get(), get()) }
 
     // -------------------------
     // USE CASES
@@ -151,6 +161,10 @@ val appModule = module {
     factory { ObserveNotificationsUseCase(get()) }
     factory { MarkNotificationReadUseCase(get()) }
     factory { ObserveUnreadNotificationsCountUseCase(get()) }
+
+    // Exchange rates
+    factory { ConvertMoneyUseCase(get()) }
+    factory { ConvertMultiCurrencyTotalsUseCase(get()) }
 
     // -------------------------
     // SYNC LAYER (NEW PIPELINE)
@@ -252,7 +266,10 @@ val appModule = module {
             observeExpenses = get(),
             computeBalances = get(),
             suggestSettlements = get(),
-            observePayments = get()
+            observePayments = get(),
+            convertMoney = get(),
+            userProfileRepo = get(),
+            auth = get()
         )
     }
 

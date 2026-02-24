@@ -19,6 +19,8 @@ fun LedgerSection(groupId: String,
     val vm: LedgerViewModel = koinViewModel(parameters = { parametersOf(groupId) })
     val state by vm.state.collectAsState()
     val currency = state.expenses.firstOrNull()?.currency ?: "EUR"
+    val userDefaultCurrency = state.userDefaultCurrency
+
     fun nameOf(memberId: String): String =
         state.members.firstOrNull { it.uid == memberId }?.displayName ?: "Unknown"
 
@@ -49,16 +51,32 @@ fun LedgerSection(groupId: String,
             }
         }
 
-
-
         Spacer(Modifier.height(8.dp))
         Text("Expenses", style = MaterialTheme.typography.titleMedium)
 
         LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
             items(state.expenses, key = { it.id }) { e ->
                 val payerName = state.members.firstOrNull { it.uid == e.payerMemberId }?.displayName ?: "Unknown"
-                Text("$payerName paid ${formatMinor(e.amountMinor, e.currency)}")
-                e.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                Column {
+                    Text("$payerName paid ${formatMinor(e.amountMinor, e.currency)}")
+                    e.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+
+                    // Show converted amount if different currency
+                    if (!e.currency.equals(userDefaultCurrency, ignoreCase = true)) {
+                        val conversion = state.conversions[e.id]
+                        if (conversion != null) {
+                            val sourceLabel = when (conversion.source) {
+                                com.bangreedy.splitsync.domain.model.FxSource.Remote -> "(live rate)"
+                                com.bangreedy.splitsync.domain.model.FxSource.Cache -> "(cached)"
+                            }
+                            Text(
+                                "≈ ${formatMinor(conversion.convertedMinor, userDefaultCurrency)} $sourceLabel",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(10.dp))
             }
         }

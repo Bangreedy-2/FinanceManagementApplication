@@ -360,21 +360,50 @@ fun CurrencyDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    val currencies = listOf("USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY", "INR")
+    var search by remember { mutableStateOf("") }
+    val all = com.bangreedy.splitsync.core.currency.CurrencyMeta.supportedCurrencies
+    val filtered = remember(search) {
+        if (search.isBlank()) all.entries.toList()
+        else all.entries.filter { (code, name) ->
+            code.contains(search, ignoreCase = true) ||
+                    name.contains(search, ignoreCase = true)
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select Currency") },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                currencies.forEach { currency ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelect(currency) }
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(currency, style = MaterialTheme.typography.bodyLarge)
+            Column {
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = { search = it },
+                    placeholder = { Text("Search…") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .heightIn(max = 350.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    filtered.forEach { (code, name) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onSelect(code) }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(code, style = MaterialTheme.typography.bodyLarge)
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
