@@ -33,7 +33,9 @@ private fun PaymentEntity.toDomain(): Payment =
         currency = currency,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        deleted = deleted
+        deleted = deleted,
+        contextType = contextType,
+        contextId = contextId
     )
 
 private fun Payment.toEntity(syncState: Int): PaymentEntity =
@@ -47,5 +49,7 @@ private fun Payment.toEntity(syncState: Int): PaymentEntity =
         createdAt = createdAt,
         updatedAt = updatedAt,
         deleted = deleted,
-        syncState = syncState
+        syncState = syncState,
+        contextType = contextType,
+        contextId = contextId
     )

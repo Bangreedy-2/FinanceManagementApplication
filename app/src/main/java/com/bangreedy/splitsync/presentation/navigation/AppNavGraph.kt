@@ -48,6 +48,8 @@ object Routes {
     const val INVITES = "invites"
     const val NOTIFICATIONS = "notifications"
     const val FRIENDS = "friends"
+    const val FRIEND_DETAILS = "friend/{friendUid}"
+    fun friendDetails(friendUid: String) = "friend/$friendUid"
     const val ACTIVITY = "activity"
     const val ACCOUNT = "account"
 }
@@ -185,7 +187,28 @@ fun AppNavGraph() {
                 if (uid != null) com.bangreedy.splitsync.presentation.notifications.NotificationsScreen(uid)
             }
 
-            composable(Routes.FRIENDS) { FriendsScreen() }
+            composable(Routes.FRIENDS) {
+                FriendsScreen(
+                    onFriendClick = { friendUid ->
+                        navController.navigate(Routes.friendDetails(friendUid))
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.FRIEND_DETAILS,
+                arguments = listOf(navArgument("friendUid") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val friendUid = backStackEntry.arguments?.getString("friendUid") ?: return@composable
+                com.bangreedy.splitsync.presentation.friends.FriendDetailsScreen(
+                    friendUid = friendUid,
+                    onBack = { navController.popBackStack() },
+                    onNavigateToGroup = { groupId ->
+                        navController.navigate(Routes.groupDetails(groupId))
+                    }
+                )
+            }
+
             composable(Routes.ACTIVITY) { ActivityScreen() }
             composable(Routes.ACCOUNT) { AccountScreen() }
 

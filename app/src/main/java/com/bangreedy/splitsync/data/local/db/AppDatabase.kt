@@ -3,6 +3,7 @@ package com.bangreedy.splitsync.data.local.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.bangreedy.splitsync.data.local.dao.ExpenseDao
+import com.bangreedy.splitsync.data.local.dao.FriendDao
 import com.bangreedy.splitsync.data.local.dao.GroupDao
 import com.bangreedy.splitsync.data.local.dao.GroupMemberDao
 import com.bangreedy.splitsync.data.local.dao.PaymentDao
@@ -10,6 +11,7 @@ import com.bangreedy.splitsync.data.local.dao.UserProfileDao
 import com.bangreedy.splitsync.data.local.dao.FxRateDao
 import com.bangreedy.splitsync.data.local.entity.ExpenseEntity
 import com.bangreedy.splitsync.data.local.entity.ExpenseSplitEntity
+import com.bangreedy.splitsync.data.local.entity.FriendEntity
 import com.bangreedy.splitsync.data.local.entity.GroupEntity
 import com.bangreedy.splitsync.data.local.entity.GroupMemberEntity
 import com.bangreedy.splitsync.data.local.entity.PaymentEntity
@@ -27,9 +29,10 @@ import com.bangreedy.splitsync.data.local.dao.NotificationDao
         ExpenseSplitEntity::class,
         PaymentEntity::class,
         NotificationEntity::class,
-        FxRateEntity::class
+        FxRateEntity::class,
+        FriendEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -40,4 +43,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun paymentDao(): PaymentDao
     abstract fun notificationDao(): NotificationDao
     abstract fun fxRateDao(): FxRateDao
+    abstract fun friendDao(): FriendDao
 }

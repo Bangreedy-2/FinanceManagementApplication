@@ -12,6 +12,8 @@ import com.bangreedy.splitsync.presentation.account.AccountViewModel
 import com.bangreedy.splitsync.presentation.addexpense.AddExpenseViewModel
 import com.bangreedy.splitsync.presentation.app.AppStateViewModel
 import com.bangreedy.splitsync.presentation.auth.AuthViewModel
+import com.bangreedy.splitsync.presentation.friends.FriendDetailsViewModel
+import com.bangreedy.splitsync.presentation.friends.FriendsViewModel
 import com.bangreedy.splitsync.presentation.groupdetails.GroupDetailsViewModel
 import com.bangreedy.splitsync.presentation.groupdetails.LedgerViewModel
 import com.bangreedy.splitsync.presentation.groups.GroupsViewModel
@@ -50,6 +52,7 @@ val appModule = module {
     single { get<AppDatabase>().userProfileDao() }
     single { get<AppDatabase>().notificationDao() }
     single { get<AppDatabase>().fxRateDao() }
+    single { get<AppDatabase>().friendDao() }
     // -------------------------
     // FIREBASE
     // -------------------------
@@ -79,6 +82,10 @@ val appModule = module {
 
     // Notifications
     single { FirestoreNotificationDataSource(get()) }
+
+    // Friends + Direct Threads
+    single { FirestoreFriendsDataSource(get()) }
+    single { FirestoreDirectThreadDataSource(get()) }
 
     // -------------------------
     // EXCHANGE RATE DATA SOURCES
@@ -120,6 +127,10 @@ val appModule = module {
     single<StorageRepository> { StorageRepositoryImpl(get(), get()) }
 
     single<ExchangeRateRepository> { ExchangeRateRepositoryImpl(get(), get()) }
+
+    single<FriendRepository> { FriendRepositoryImpl(get(), get(), get(), get(), get()) }
+    single<DirectThreadRepository> { DirectThreadRepositoryImpl(get(), get(), get()) }
+    single<FriendActivityRepository> { FriendActivityRepositoryImpl(get(), get(), get(), get()) }
 
     // -------------------------
     // USE CASES
@@ -165,6 +176,19 @@ val appModule = module {
     // Exchange rates
     factory { ConvertMoneyUseCase(get()) }
     factory { ConvertMultiCurrencyTotalsUseCase(get()) }
+
+    // Friends
+    factory { ObserveFriendsUseCase(get()) }
+    factory { ObservePendingFriendCountUseCase(get()) }
+    factory { ObservePendingFriendsUseCase(get()) }
+    factory { SendFriendRequestUseCase(get()) }
+    factory { AcceptFriendRequestUseCase(get()) }
+    factory { DeclineFriendRequestUseCase(get()) }
+    factory { ObserveFriendActivityUseCase(get()) }
+    factory { CreateDirectExpenseUseCase(get()) }
+    factory { CreateDirectPaymentUseCase(get()) }
+    factory { EnsureDirectThreadUseCase(get()) }
+    factory { ComputeTotalInDefaultCurrencyUseCase(get()) }
 
     // -------------------------
     // SYNC LAYER (NEW PIPELINE)
@@ -216,13 +240,31 @@ val appModule = module {
     }
 
     single {
+        FriendSyncManager(
+            remote = get(),
+            friendDao = get(),
+            userProfileSyncManager = get()
+        )
+    }
+
+    single {
+        DirectThreadSyncManager(
+            directThreadDS = get(),
+            expenseDao = get(),
+            paymentDao = get()
+        )
+    }
+
+    single {
         SyncCoordinator(
             groupSyncManager = get(),
             groupMemberSyncManager = get(),
             userProfileSyncManager = get(),
             expenseSyncManager = get(),
             paymentSyncManager = get(),
-            notificationSyncManager = get()
+            notificationSyncManager = get(),
+            friendSyncManager = get(),
+            directThreadSyncManager = get()
         )
     }
 
@@ -329,4 +371,29 @@ val appModule = module {
     }
 
     viewModel { AccountViewModel(get(), get(), get()) }
+
+    // Friends
+    viewModel {
+        FriendsViewModel(
+            observeFriends = get(),
+            observePending = get(),
+            sendRequest = get(),
+            acceptRequest = get(),
+            declineRequest = get(),
+            auth = get()
+        )
+    }
+
+    viewModel { (friendUid: String) ->
+        FriendDetailsViewModel(
+            friendUid = friendUid,
+            observeActivity = get(),
+            createDirectExpense = get(),
+            createDirectPayment = get(),
+            ensureThread = get(),
+            computeTotal = get(),
+            userProfileRepo = get(),
+            auth = get()
+        )
+    }
 }

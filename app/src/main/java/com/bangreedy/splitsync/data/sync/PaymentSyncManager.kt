@@ -90,7 +90,9 @@ class PaymentSyncManager(
                         createdAt = createdAt,
                         updatedAt = updatedAt,
                         deleted = deleted,
-                        syncState = SyncState.SYNCED
+                        syncState = SyncState.SYNCED,
+                        contextType = "GROUP",
+                        contextId = groupId
                     )
                 )
             }

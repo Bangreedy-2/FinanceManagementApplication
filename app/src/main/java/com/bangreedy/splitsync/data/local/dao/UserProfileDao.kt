@@ -20,4 +20,10 @@ interface UserProfileDao {
 
     @Query("UPDATE user_profiles SET syncState = :newState WHERE uid = :uid")
     suspend fun setProfileSyncState(uid: String, newState: Int)
+
+    @Query("SELECT * FROM user_profiles WHERE uid = :uid LIMIT 1")
+    suspend fun getByUid(uid: String): UserProfileEntity?
+
+    @Query("SELECT * FROM user_profiles WHERE uid IN (:uids)")
+    suspend fun getByUids(uids: List<String>): List<UserProfileEntity>
 }
