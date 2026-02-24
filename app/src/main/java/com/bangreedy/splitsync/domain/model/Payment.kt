@@ -9,5 +9,7 @@ data class Payment(
     val currency: String,
     val createdAt: Long,
     val updatedAt: Long,
-    val deleted: Boolean = false
+    val deleted: Boolean = false,
+    val contextType: String = "GROUP",
+    val contextId: String = groupId
 )

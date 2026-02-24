@@ -52,5 +52,15 @@ interface ExpenseDao {
     WHERE up.uid IS NULL
 """)
     suspend fun countSplitsWithMissingProfiles(): Int
+
+    /** All non-deleted expenses across all contexts (groups + direct). Used by friend activity. */
+    @Transaction
+    @Query("SELECT * FROM expenses WHERE deleted = 0 ORDER BY createdAt DESC")
+    fun observeAllExpensesWithSplits(): Flow<List<ExpenseWithSplits>>
+
+    /** Expenses for a specific context (DIRECT thread or GROUP). */
+    @Transaction
+    @Query("SELECT * FROM expenses WHERE contextType = :contextType AND contextId = :contextId AND deleted = 0 ORDER BY createdAt DESC")
+    fun observeExpensesByContext(contextType: String, contextId: String): Flow<List<ExpenseWithSplits>>
 }
 

@@ -18,7 +18,9 @@ fun ExpenseWithSplits.toDomain(): Expense =
         createdAt = expense.createdAt,
         updatedAt = expense.updatedAt,
         deleted = expense.deleted,
-        splits = splits.map { SplitShare(memberId = it.memberId, owedMinor = it.owedMinor) }
+        splits = splits.map { SplitShare(memberId = it.memberId, owedMinor = it.owedMinor) },
+        contextType = expense.contextType,
+        contextId = expense.contextId
     )
 
 fun Expense.toEntity(syncState: Int = SyncState.DIRTY): ExpenseEntity =
@@ -32,7 +34,9 @@ fun Expense.toEntity(syncState: Int = SyncState.DIRTY): ExpenseEntity =
         createdAt = createdAt,
         updatedAt = updatedAt,
         deleted = deleted,
-        syncState = syncState
+        syncState = syncState,
+        contextType = contextType,
+        contextId = contextId
     )
 
 fun Expense.toSplitEntities(): List<ExpenseSplitEntity> =

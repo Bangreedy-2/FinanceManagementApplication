@@ -10,5 +10,7 @@ data class Expense(
     val createdAt: Long,
     val updatedAt: Long,
     val deleted: Boolean = false,
-    val splits: List<SplitShare>
+    val splits: List<SplitShare>,
+    val contextType: String = "GROUP",
+    val contextId: String = groupId
 )

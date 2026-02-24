@@ -6,18 +6,25 @@ class SyncCoordinator(
     private val userProfileSyncManager: UserProfileSyncManager,
     private val expenseSyncManager: ExpenseSyncManager,
     private val paymentSyncManager: PaymentSyncManager,
-    private val notificationSyncManager: NotificationSyncManager
+    private val notificationSyncManager: NotificationSyncManager,
+    private val friendSyncManager: FriendSyncManager,
+    private val directThreadSyncManager: DirectThreadSyncManager
 ) {
     fun start(userId: String) {
         groupSyncManager.start(userId) { groupIds ->
             groupMemberSyncManager.onGroupsChanged(groupIds)
             expenseSyncManager.onGroupsChanged(groupIds)
             paymentSyncManager.onGroupsChanged(groupIds)
-
-            // profiles depend on group_members (uids) so we trigger refresh after groups updated.
             userProfileSyncManager.onGroupsChanged(groupIds)
         }
         notificationSyncManager.start(userId)
+
+        // Friends sync
+        directThreadSyncManager.setMyUid(userId)
+        friendSyncManager.onAcceptedFriendsChanged = { acceptedFriendUids ->
+            directThreadSyncManager.onAcceptedFriendsChanged(acceptedFriendUids)
+        }
+        friendSyncManager.start(userId)
     }
 
     suspend fun pushNow(userId: String) {
@@ -32,6 +39,7 @@ class SyncCoordinator(
         expenseSyncManager.stop()
         paymentSyncManager.stop()
         notificationSyncManager.stop()
-        // userProfileSyncManager doesn't hold listeners in this design
+        friendSyncManager.stop()
+        directThreadSyncManager.stop()
     }
 }
