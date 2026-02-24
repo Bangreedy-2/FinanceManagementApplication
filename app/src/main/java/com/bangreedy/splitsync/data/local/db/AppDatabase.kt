@@ -24,9 +24,9 @@ import com.bangreedy.splitsync.data.local.dao.NotificationDao
         ExpenseEntity::class,
         ExpenseSplitEntity::class,
         PaymentEntity::class,
-        NotificationEntity::class // ✅ add
+        NotificationEntity::class
     ],
-    version = 8, // bump by +1
+    version = 9, // bump by +1
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,5 +35,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun expenseDao(): ExpenseDao
     abstract fun paymentDao(): PaymentDao
-    abstract fun notificationDao(): NotificationDao // ✅ add
+    abstract fun notificationDao(): NotificationDao
 }
