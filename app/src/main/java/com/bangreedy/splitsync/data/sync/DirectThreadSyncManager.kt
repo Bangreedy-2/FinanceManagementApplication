@@ -115,6 +115,18 @@ class DirectThreadSyncManager(
             val createdAt = doc.getLong("createdAt") ?: 0L
             val updatedAt = doc.getLong("updatedAt") ?: createdAt
             val deleted = doc.getBoolean("deleted") ?: false
+            val mode = doc.getString("mode") ?: "ONE_CURRENCY"
+            val ratesLastUpdatedAt = doc.getLong("ratesLastUpdatedAt")
+            val asOfDate = doc.getString("asOfDate")
+            val settlementId = doc.getString("settlementId")
+
+            @Suppress("UNCHECKED_CAST")
+            val breakdownMap = doc.get("breakdownByCurrency") as? Map<String, Long>
+            val breakdownJson = breakdownMap?.let { map ->
+                val obj = org.json.JSONObject()
+                map.forEach { (k, v) -> obj.put(k, v) }
+                obj.toString()
+            }
 
             scope.launch {
                 paymentDao.upsert(
@@ -130,7 +142,12 @@ class DirectThreadSyncManager(
                         deleted = deleted,
                         syncState = SyncState.SYNCED,
                         contextType = "DIRECT",
-                        contextId = threadId
+                        contextId = threadId,
+                        mode = mode,
+                        breakdownJson = breakdownJson,
+                        ratesLastUpdatedAt = ratesLastUpdatedAt,
+                        asOfDate = asOfDate,
+                        settlementId = settlementId
                     )
                 )
             }

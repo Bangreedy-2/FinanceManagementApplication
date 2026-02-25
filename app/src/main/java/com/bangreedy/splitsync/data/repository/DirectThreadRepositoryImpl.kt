@@ -8,6 +8,7 @@ import com.bangreedy.splitsync.data.remote.firestore.FirestoreDirectThreadDataSo
 import com.bangreedy.splitsync.data.local.dao.PaymentDao
 import com.bangreedy.splitsync.data.local.entity.PaymentEntity
 import com.bangreedy.splitsync.domain.repository.DirectThreadRepository
+import org.json.JSONObject
 import java.util.UUID
 
 class DirectThreadRepositoryImpl(
@@ -84,13 +85,24 @@ class DirectThreadRepositoryImpl(
         fromUid: String,
         toUid: String,
         amountMinor: Long,
-        currency: String
+        currency: String,
+        mode: String,
+        breakdownByCurrency: Map<String, Long>?,
+        ratesLastUpdatedAt: Long?,
+        asOfDate: String?,
+        settlementId: String?
     ): String {
         require(fromUid != toUid) { "Cannot pay yourself" }
         require(amountMinor > 0) { "Amount must be > 0" }
 
         val paymentId = UUID.randomUUID().toString()
         val now = System.currentTimeMillis()
+
+        val breakdownJson = breakdownByCurrency?.let { map ->
+            val obj = JSONObject()
+            map.forEach { (k, v) -> obj.put(k, v) }
+            obj.toString()
+        }
 
         val entity = PaymentEntity(
             id = paymentId,
@@ -104,22 +116,33 @@ class DirectThreadRepositoryImpl(
             deleted = false,
             syncState = SyncState.SYNCED,
             contextType = "DIRECT",
-            contextId = threadId
+            contextId = threadId,
+            mode = mode,
+            breakdownJson = breakdownJson,
+            ratesLastUpdatedAt = ratesLastUpdatedAt,
+            asOfDate = asOfDate,
+            settlementId = settlementId
         )
 
         // Write to Room
         paymentDao.upsert(entity)
 
         // Write to Firestore
-        val data = mapOf(
+        val data = mutableMapOf<String, Any?>(
             "fromMemberId" to fromUid,
             "toMemberId" to toUid,
             "amountMinor" to amountMinor,
             "currency" to currency,
             "createdAt" to now,
             "updatedAt" to now,
-            "deleted" to false
+            "deleted" to false,
+            "mode" to mode
         )
+        if (breakdownByCurrency != null) data["breakdownByCurrency"] = breakdownByCurrency
+        if (ratesLastUpdatedAt != null) data["ratesLastUpdatedAt"] = ratesLastUpdatedAt
+        if (asOfDate != null) data["asOfDate"] = asOfDate
+        if (settlementId != null) data["settlementId"] = settlementId
+
         directThreadDS.upsertDirectPayment(threadId, paymentId, data)
 
         return paymentId

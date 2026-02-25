@@ -9,6 +9,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.bangreedy.splitsync.core.money.formatMinor
 import com.bangreedy.splitsync.domain.model.Member
+import com.bangreedy.splitsync.presentation.common.CurrencyPickerField
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -55,6 +56,12 @@ fun SettleUpScreen(
             label = { Text("Amount") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        CurrencyPickerField(
+            value = state.currency,
+            onCurrencyChanged = vm::onCurrencyChange,
             modifier = Modifier.fillMaxWidth()
         )
 

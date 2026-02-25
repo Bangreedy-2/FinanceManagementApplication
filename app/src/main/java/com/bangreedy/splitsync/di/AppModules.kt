@@ -189,6 +189,10 @@ val appModule = module {
     factory { CreateDirectPaymentUseCase(get()) }
     factory { EnsureDirectThreadUseCase(get()) }
     factory { ComputeTotalInDefaultCurrencyUseCase(get()) }
+    factory { SuggestFriendSettlementUseCase(get()) }
+    factory { ObservePairwiseDebtBucketsUseCase(get(), get(), get()) }
+    factory { BuildSettlementPlanUseCase(get()) }
+    factory { ExecuteSettlementPlanUseCase(get(), get()) }
 
     // -------------------------
     // SYNC LAYER (NEW PIPELINE)
@@ -389,9 +393,11 @@ val appModule = module {
             friendUid = friendUid,
             observeActivity = get(),
             createDirectExpense = get(),
-            createDirectPayment = get(),
             ensureThread = get(),
             computeTotal = get(),
+            observeDebtBuckets = get(),
+            buildPlan = get(),
+            executePlan = get(),
             userProfileRepo = get(),
             auth = get()
         )

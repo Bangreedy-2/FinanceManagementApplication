@@ -46,15 +46,27 @@ class PaymentSyncManager(
         val dirty = paymentDao.getDirtyPayments(SyncState.DIRTY)
 
         for (p in dirty) {
-            val data = mapOf(
+            val data = mutableMapOf<String, Any?>(
                 "fromMemberId" to p.fromMemberId,
                 "toMemberId" to p.toMemberId,
                 "amountMinor" to p.amountMinor,
                 "currency" to p.currency,
                 "createdAt" to p.createdAt,
                 "updatedAt" to p.updatedAt,
-                "deleted" to p.deleted
+                "deleted" to p.deleted,
+                "mode" to p.mode
             )
+            if (p.breakdownJson != null) {
+                try {
+                    val obj = org.json.JSONObject(p.breakdownJson)
+                    val map = mutableMapOf<String, Long>()
+                    obj.keys().forEach { key -> map[key] = obj.getLong(key) }
+                    data["breakdownByCurrency"] = map
+                } catch (_: Throwable) {}
+            }
+            if (p.ratesLastUpdatedAt != null) data["ratesLastUpdatedAt"] = p.ratesLastUpdatedAt
+            if (p.asOfDate != null) data["asOfDate"] = p.asOfDate
+            if (p.settlementId != null) data["settlementId"] = p.settlementId
 
             paymentDataSource.upsertPayment(
                 groupId = p.groupId,
@@ -77,6 +89,18 @@ class PaymentSyncManager(
             val createdAt = doc.getLong("createdAt") ?: 0L
             val updatedAt = doc.getLong("updatedAt") ?: createdAt
             val deleted = doc.getBoolean("deleted") ?: false
+            val mode = doc.getString("mode") ?: "ONE_CURRENCY"
+            val ratesLastUpdatedAt = doc.getLong("ratesLastUpdatedAt")
+            val asOfDate = doc.getString("asOfDate")
+            val settlementId = doc.getString("settlementId")
+
+            @Suppress("UNCHECKED_CAST")
+            val breakdownMap = doc.get("breakdownByCurrency") as? Map<String, Long>
+            val breakdownJson = breakdownMap?.let { map ->
+                val obj = org.json.JSONObject()
+                map.forEach { (k, v) -> obj.put(k, v) }
+                obj.toString()
+            }
 
             scope.launch {
                 paymentDao.upsert(
@@ -92,7 +116,12 @@ class PaymentSyncManager(
                         deleted = deleted,
                         syncState = SyncState.SYNCED,
                         contextType = "GROUP",
-                        contextId = groupId
+                        contextId = groupId,
+                        mode = mode,
+                        breakdownJson = breakdownJson,
+                        ratesLastUpdatedAt = ratesLastUpdatedAt,
+                        asOfDate = asOfDate,
+                        settlementId = settlementId
                     )
                 )
             }

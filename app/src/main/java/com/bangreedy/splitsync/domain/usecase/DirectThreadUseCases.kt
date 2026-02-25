@@ -19,8 +19,16 @@ class CreateDirectPaymentUseCase(private val repo: DirectThreadRepository) {
         fromUid: String,
         toUid: String,
         amountMinor: Long,
-        currency: String
-    ): String = repo.createDirectPayment(threadId, fromUid, toUid, amountMinor, currency)
+        currency: String,
+        mode: String = "ONE_CURRENCY",
+        breakdownByCurrency: Map<String, Long>? = null,
+        ratesLastUpdatedAt: Long? = null,
+        asOfDate: String? = null,
+        settlementId: String? = null
+    ): String = repo.createDirectPayment(
+        threadId, fromUid, toUid, amountMinor, currency,
+        mode, breakdownByCurrency, ratesLastUpdatedAt, asOfDate, settlementId
+    )
 }
 
 class EnsureDirectThreadUseCase(private val repo: DirectThreadRepository) {

@@ -6,6 +6,7 @@ import com.bangreedy.splitsync.data.sync.SyncCoordinator
 import com.bangreedy.splitsync.domain.model.Member
 import com.bangreedy.splitsync.domain.usecase.CreateExpenseEqualSplitUseCase
 import com.bangreedy.splitsync.domain.usecase.ObserveMembersUseCase
+import com.bangreedy.splitsync.presentation.common.isValidCurrency
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +48,7 @@ class AddExpenseViewModel(
 
     fun onAmountChange(v: String) = _state.update { it.copy(amountText = v, error = null) }
     fun onNoteChange(v: String) = _state.update { it.copy(note = v, error = null) }
+    fun onCurrencyChange(v: String) = _state.update { it.copy(currency = v, error = null) }
 
     fun onPayerSelected(memberId: String) =
         _state.update { it.copy(payerMemberId = memberId, error = null) }
@@ -81,6 +83,11 @@ class AddExpenseViewModel(
 
         if (payerId !in s.participantIds) {
             _state.update { it.copy(error = "Payer must be included in participants") }
+            return
+        }
+
+        if (!isValidCurrency(s.currency)) {
+            _state.update { it.copy(error = "Select a valid currency") }
             return
         }
 
