@@ -1,11 +1,12 @@
 package com.bangreedy.splitsync.presentation.friends
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -18,13 +19,17 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.bangreedy.splitsync.core.money.formatMinor
 import com.bangreedy.splitsync.domain.model.ActivitySource
+import com.bangreedy.splitsync.domain.model.DebtBucket
 import com.bangreedy.splitsync.domain.model.FriendActivityItem
 import com.bangreedy.splitsync.domain.model.TotalInDefault
+import com.bangreedy.splitsync.presentation.common.CurrencyPickerField
+import com.bangreedy.splitsync.presentation.common.isValidCurrency
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,10 +59,13 @@ fun FriendDetailsScreen(
     }
 
     if (state.showSettleUp) {
-        DirectSettleUpDialog(
+        SettleUpPlanDialog(
+            debtBuckets = state.debtBuckets,
+            defaultCurrency = state.defaultCurrency,
+            isExecuting = state.isExecutingPlan,
             onDismiss = { vm.toggleSettleUp() },
-            onConfirm = { amount, currency, iPayFriend ->
-                vm.settleUp(amount, currency, iPayFriend)
+            onConfirm = { selectedBuckets, payCurrency ->
+                vm.settleWithPlan(selectedBuckets, payCurrency)
             }
         )
     }
@@ -142,9 +150,16 @@ fun FriendDetailsScreen(
             HorizontalDivider()
             Spacer(Modifier.height(12.dp))
 
-            // Totals section
+            // Balance section
             val netByCurrency = state.activity.netByCurrency
-            if (netByCurrency.isNotEmpty() || state.totalInDefault != null) {
+            if (state.isFullySettled) {
+                Text(
+                    "Fully settled",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(12.dp))
+            } else {
                 Text("Balance", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(4.dp))
 
@@ -156,10 +171,11 @@ fun FriendDetailsScreen(
 
                 // Per-currency breakdown
                 netByCurrency.forEach { (currency, net) ->
+                    if (net == 0L) return@forEach
                     val label = when {
                         net > 0 -> "Owes you ${formatMinor(net, currency)}"
                         net < 0 -> "You owe ${formatMinor(-net, currency)}"
-                        else -> "Settled up in $currency"
+                        else -> ""
                     }
                     Text(
                         label,
@@ -171,9 +187,20 @@ fun FriendDetailsScreen(
                         }
                     )
                 }
-                Spacer(Modifier.height(12.dp))
-            } else {
-                Text("No transactions yet", style = MaterialTheme.typography.bodyMedium)
+
+                // Debt buckets breakdown (by context)
+                if (state.debtBuckets.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    state.debtBuckets.forEach { bucket ->
+                        val sign = if (bucket.netMinor > 0) "+" else ""
+                        Text(
+                            "  ${bucket.label}: $sign${formatMinor(bucket.netMinor, bucket.currency)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 Spacer(Modifier.height(12.dp))
             }
 
@@ -185,7 +212,11 @@ fun FriendDetailsScreen(
                 Button(onClick = { vm.toggleAddExpense() }, modifier = Modifier.weight(1f)) {
                     Text("Add Expense")
                 }
-                OutlinedButton(onClick = { vm.toggleSettleUp() }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = { vm.toggleSettleUp() },
+                    modifier = Modifier.weight(1f),
+                    enabled = !state.isFullySettled
+                ) {
                     Text("Settle Up")
                 }
             }
@@ -284,6 +315,7 @@ private fun AddDirectExpenseDialog(
     var currency by remember { mutableStateOf("USD") }
     var note by remember { mutableStateOf("") }
     var iPaid by remember { mutableStateOf(true) }
+    val currencyValid = isValidCurrency(currency)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -296,11 +328,9 @@ private fun AddDirectExpenseDialog(
                     label = { Text("Amount") },
                     singleLine = true
                 )
-                OutlinedTextField(
+                CurrencyPickerField(
                     value = currency,
-                    onValueChange = { currency = it.uppercase() },
-                    label = { Text("Currency") },
-                    singleLine = true
+                    onCurrencyChanged = { currency = it }
                 )
                 OutlinedTextField(
                     value = note,
@@ -328,73 +358,177 @@ private fun AddDirectExpenseDialog(
             Button(
                 onClick = {
                     val minor = parseAmountToMinor(amountText)
-                    if (minor != null && minor > 0) {
+                    if (minor != null && minor > 0 && currencyValid) {
                         onConfirm(minor, currency, note.ifBlank { null }, iPaid)
                     }
                 },
-                enabled = amountText.isNotBlank()
+                enabled = amountText.isNotBlank() && currencyValid
             ) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
+/**
+ * Settlement dialog with bucket selection.
+ *
+ * User picks which debts (context+currency) to settle, and a pay currency.
+ * Lines are settled in their native currencies; FX is only for the payment method.
+ */
 @Composable
-private fun DirectSettleUpDialog(
+private fun SettleUpPlanDialog(
+    debtBuckets: List<DebtBucket>,
+    defaultCurrency: String,
+    isExecuting: Boolean,
     onDismiss: () -> Unit,
-    onConfirm: (amountMinor: Long, currency: String, iPayFriend: Boolean) -> Unit
+    onConfirm: (selectedBuckets: List<DebtBucket>, payCurrency: String) -> Unit
 ) {
-    var amountText by remember { mutableStateOf("") }
-    var currency by remember { mutableStateOf("USD") }
-    var iPay by remember { mutableStateOf(true) }
+    // Track selection state for each bucket
+    val selectedState = remember(debtBuckets) {
+        mutableStateMapOf<String, Boolean>().apply {
+            debtBuckets.forEach { b ->
+                put(bucketKey(b), true) // default: all selected
+            }
+        }
+    }
+    var payCurrency by remember { mutableStateOf(defaultCurrency) }
+    val payCurrencyValid = isValidCurrency(payCurrency)
+
+    val selectedBuckets = remember(debtBuckets, selectedState.toMap()) {
+        debtBuckets.filter { selectedState[bucketKey(it)] == true }
+    }
+
+    // Group buckets by currency for display
+    val bucketsByCurrency = remember(debtBuckets) {
+        debtBuckets.groupBy { it.currency }
+    }
+
+    val allSelected = selectedBuckets.size == debtBuckets.size
+    val noneSelected = selectedBuckets.isEmpty()
 
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (!isExecuting) onDismiss() },
         title = { Text("Settle Up") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it },
-                    label = { Text("Amount") },
-                    singleLine = true
-                )
-                OutlinedTextField(
-                    value = currency,
-                    onValueChange = { currency = it.uppercase() },
-                    label = { Text("Currency") },
-                    singleLine = true
-                )
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Select all toggle
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Direction:", modifier = Modifier.weight(1f))
-                    FilterChip(
-                        selected = iPay,
-                        onClick = { iPay = true },
-                        label = { Text("I pay them") }
+                    Checkbox(
+                        checked = allSelected,
+                        onCheckedChange = { checked ->
+                            debtBuckets.forEach { b ->
+                                selectedState[bucketKey(b)] = checked
+                            }
+                        }
                     )
-                    Spacer(Modifier.width(8.dp))
-                    FilterChip(
-                        selected = !iPay,
-                        onClick = { iPay = false },
-                        label = { Text("They pay me") }
+                    Text("Select all debts", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                HorizontalDivider()
+
+                // Buckets grouped by currency
+                bucketsByCurrency.forEach { (currency, buckets) ->
+                    Text(
+                        currency,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
+                    buckets.forEach { bucket ->
+                        val key = bucketKey(bucket)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = selectedState[key] == true,
+                                onCheckedChange = { selectedState[key] = it }
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(bucket.label, style = MaterialTheme.typography.bodyMedium)
+                                val absAmount = abs(bucket.netMinor)
+                                val dirText = if (bucket.netMinor < 0)
+                                    "You owe ${formatMinor(absAmount, bucket.currency)}"
+                                else
+                                    "Owes you ${formatMinor(absAmount, bucket.currency)}"
+                                Text(
+                                    dirText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (bucket.netMinor < 0)
+                                        MaterialTheme.colorScheme.error
+                                    else
+                                        MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+
+                HorizontalDivider()
+
+                // Pay currency picker
+                Text("Pay in:", style = MaterialTheme.typography.labelMedium)
+                CurrencyPickerField(
+                    value = payCurrency,
+                    onCurrencyChanged = { payCurrency = it }
+                )
+
+                // Preview: what this settles
+                if (selectedBuckets.isNotEmpty()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text("This will settle:", style = MaterialTheme.typography.labelMedium)
+                    selectedBuckets.forEach { b ->
+                        val absAmount = abs(b.netMinor)
+                        Text(
+                            "  ${b.label}: ${formatMinor(absAmount, b.currency)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // If any selected bucket is NOT in payCurrency, show FX note
+                    val needsFx = selectedBuckets.any {
+                        !it.currency.equals(payCurrency, ignoreCase = true)
+                    }
+                    if (needsFx) {
+                        Text(
+                            "FX rates will be locked at current values",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    val minor = parseAmountToMinor(amountText)
-                    if (minor != null && minor > 0) {
-                        onConfirm(minor, currency, iPay)
-                    }
-                },
-                enabled = amountText.isNotBlank()
-            ) { Text("Settle") }
+                onClick = { onConfirm(selectedBuckets, payCurrency) },
+                enabled = !noneSelected && payCurrencyValid && !isExecuting
+            ) {
+                if (isExecuting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (allSelected) "Settle All" else "Settle Selected")
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isExecuting
+            ) { Text("Cancel") }
+        }
     )
 }
+
+private fun bucketKey(b: DebtBucket): String =
+    "${b.contextType}|${b.contextId}|${b.currency}"
 
 /** Parse "12.50" → 1250L (centified) */
 private fun parseAmountToMinor(text: String): Long? {
@@ -451,10 +585,3 @@ private fun TotalInDefaultLine(total: TotalInDefault) {
         )
     }
 }
-
-
-
-
-
-
-

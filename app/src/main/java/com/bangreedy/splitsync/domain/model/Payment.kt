@@ -11,5 +11,10 @@ data class Payment(
     val updatedAt: Long,
     val deleted: Boolean = false,
     val contextType: String = "GROUP",
-    val contextId: String = groupId
+    val contextId: String = groupId,
+    val mode: String = "ONE_CURRENCY",
+    val breakdownByCurrency: Map<String, Long>? = null,
+    val ratesLastUpdatedAt: Long? = null,
+    val asOfDate: String? = null,
+    val settlementId: String? = null
 )

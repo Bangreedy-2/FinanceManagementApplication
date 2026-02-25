@@ -12,6 +12,7 @@ import com.bangreedy.splitsync.domain.model.FriendActivityItem
 import com.bangreedy.splitsync.domain.repository.FriendActivityRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import org.json.JSONObject
 
 class FriendActivityRepositoryImpl(
     private val expenseDao: ExpenseDao,
@@ -55,6 +56,9 @@ class FriendActivityRepositoryImpl(
         val nameCache = mutableMapOf<String, String>()
 
         suspend fun resolveName(uid: String): String {
+            if (uid == myUid) return nameCache.getOrPut(uid) {
+                userProfileDao.getByUid(uid)?.displayName ?: "You"
+            }
             return nameCache.getOrPut(uid) {
                 userProfileDao.getByUid(uid)?.displayName ?: uid.take(8)
             }
@@ -146,6 +150,19 @@ class FriendActivityRepositoryImpl(
         items.sortByDescending { it.createdAt }
 
         return FriendActivity(items = items, netByCurrency = netByCurrency)
+    }
+
+    private fun parseBreakdownJson(json: String): Map<String, Long> {
+        return try {
+            val obj = JSONObject(json)
+            val map = mutableMapOf<String, Long>()
+            val keys: Iterator<String> = obj.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                map[key] = obj.getLong(key)
+            }
+            map
+        } catch (_: Throwable) { emptyMap() }
     }
 }
 

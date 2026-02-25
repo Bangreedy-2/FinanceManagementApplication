@@ -12,6 +12,10 @@ object CurrencyMeta {
         // 3-decimal currencies
         "BHD" to 3, "IQD" to 3, "JOD" to 3, "KWD" to 3, "LYD" to 3,
         "OMR" to 3, "TND" to 3,
+        // Crypto
+        "BTC" to 12,
+        // Precious metals (use 2 as display default)
+        "XAG" to 2, "XAU" to 2, "XPD" to 2, "XPT" to 2,
     )
 
     /** Full list of supported currency codes → human-readable names. */
@@ -37,6 +41,7 @@ object CurrencyMeta {
         "BOB" to "Bolivian Boliviano",
         "BRL" to "Brazilian Real",
         "BSD" to "Bahamian Dollar",
+        "BTC" to "Bitcoin",
         "BTN" to "Bhutanese Ngultrum",
         "BWP" to "Botswanan Pula",
         "BYN" to "Belarusian Ruble",
@@ -174,11 +179,15 @@ object CurrencyMeta {
         "VUV" to "Vanuatu Vatu",
         "WST" to "Samoan Tala",
         "XAF" to "CFA Franc BEAC",
+        "XAG" to "Silver Ounce",
+        "XAU" to "Gold Ounce",
         "XCD" to "East Caribbean Dollar",
         "XCG" to "Caribbean Guilder",
         "XDR" to "Special Drawing Rights",
         "XOF" to "CFA Franc BCEAO",
+        "XPD" to "Palladium Ounce",
         "XPF" to "CFP Franc",
+        "XPT" to "Platinum Ounce",
         "YER" to "Yemeni Rial",
         "ZAR" to "South African Rand",
         "ZMW" to "Zambian Kwacha",

@@ -20,5 +20,10 @@ data class PaymentEntity(
     val deleted: Boolean,
     val syncState: Int,
     val contextType: String = "GROUP",
-    val contextId: String = groupId
+    val contextId: String = groupId,
+    val mode: String = "ONE_CURRENCY",
+    val breakdownJson: String? = null,
+    val ratesLastUpdatedAt: Long? = null,
+    val asOfDate: String? = null,
+    val settlementId: String? = null
 )

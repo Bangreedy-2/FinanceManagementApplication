@@ -11,5 +11,11 @@ data class FirestorePayment(
 
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,
-    val deleted: Boolean = false
+    val deleted: Boolean = false,
+
+    val mode: String = "ONE_CURRENCY",
+    val breakdownByCurrency: Map<String, Long>? = null,
+    val ratesLastUpdatedAt: Long? = null,
+    val asOfDate: String? = null,
+    val settlementId: String? = null
 )

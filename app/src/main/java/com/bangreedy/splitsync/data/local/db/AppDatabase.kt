@@ -32,7 +32,7 @@ import com.bangreedy.splitsync.data.local.dao.NotificationDao
         FxRateEntity::class,
         FriendEntity::class
     ],
-    version = 11,
+    version = 13,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

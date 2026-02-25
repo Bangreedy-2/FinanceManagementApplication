@@ -11,6 +11,9 @@ class SyncCoordinator(
     private val directThreadSyncManager: DirectThreadSyncManager
 ) {
     fun start(userId: String) {
+        // Sync the current user's own profile to Room so it's available for name resolution
+        userProfileSyncManager.refreshUids(listOf(userId))
+
         groupSyncManager.start(userId) { groupIds ->
             groupMemberSyncManager.onGroupsChanged(groupIds)
             expenseSyncManager.onGroupsChanged(groupIds)

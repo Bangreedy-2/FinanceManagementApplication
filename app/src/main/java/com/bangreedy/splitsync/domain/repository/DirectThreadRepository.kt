@@ -16,7 +16,12 @@ interface DirectThreadRepository {
         fromUid: String,
         toUid: String,
         amountMinor: Long,
-        currency: String
+        currency: String,
+        mode: String = "ONE_CURRENCY",
+        breakdownByCurrency: Map<String, Long>? = null,
+        ratesLastUpdatedAt: Long? = null,
+        asOfDate: String? = null,
+        settlementId: String? = null
     ): String
 }
 
