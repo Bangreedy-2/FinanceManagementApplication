@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="nfc_service_desc">SplitSync Friend Invite</string>
+    <string name="nfc_aid_group_desc">SplitSync NFC Tag Emulation</string>
 </resources>

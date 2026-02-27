@@ -52,6 +52,7 @@ object Routes {
     fun friendDetails(friendUid: String) = "friend/$friendUid"
     const val ACTIVITY = "activity"
     const val ACCOUNT = "account"
+    const val NFC_FRIEND = "nfc-friend"
 }
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
@@ -136,11 +137,7 @@ fun AppNavGraph() {
                 val groupId = backStackEntry.arguments?.getString("groupId") ?: return@composable
                 GroupDetailsScreen(
                     groupId = groupId,
-                    onAddExpense = { navController.navigate(Routes.addExpense(groupId)) },
-                    onOpenSettleUp = { navController.navigate(Routes.settleUp(groupId)) },
-                    onSettleSuggestion = { fromId, toId, amountMinor ->
-                        navController.navigate(Routes.settleUpPrefill(groupId, fromId, toId, amountMinor))
-                    }
+                    onAddExpense = { navController.navigate(Routes.addExpense(groupId)) }
                 )
 
             }
@@ -191,6 +188,9 @@ fun AppNavGraph() {
                 FriendsScreen(
                     onFriendClick = { friendUid ->
                         navController.navigate(Routes.friendDetails(friendUid))
+                    },
+                    onNfcClick = {
+                        navController.navigate(Routes.NFC_FRIEND)
                     }
                 )
             }
@@ -206,6 +206,12 @@ fun AppNavGraph() {
                     onNavigateToGroup = { groupId ->
                         navController.navigate(Routes.groupDetails(groupId))
                     }
+                )
+            }
+
+            composable(Routes.NFC_FRIEND) {
+                com.bangreedy.splitsync.presentation.friends.NfcFriendScreen(
+                    onBack = { navController.popBackStack() }
                 )
             }
 

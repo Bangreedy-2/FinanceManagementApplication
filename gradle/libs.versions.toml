@@ -15,6 +15,7 @@ room = "2.6.1"
 koin = "3.5.6"
 ksp = "2.0.21-1.0.27" # must match your Kotlin version family
 coil = "2.7.0"
+zxing = "3.5.3"
 
 [libraries]
 
@@ -47,6 +48,7 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-ui-text = { module = "androidx.compose.ui:ui-text" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
