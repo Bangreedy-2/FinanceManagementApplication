@@ -14,6 +14,8 @@ import com.bangreedy.splitsync.presentation.app.AppStateViewModel
 import com.bangreedy.splitsync.presentation.auth.AuthViewModel
 import com.bangreedy.splitsync.presentation.friends.FriendDetailsViewModel
 import com.bangreedy.splitsync.presentation.friends.FriendsViewModel
+import com.bangreedy.splitsync.presentation.friends.NfcFriendViewModel
+import com.bangreedy.splitsync.presentation.common.NfcCoordinator
 import com.bangreedy.splitsync.presentation.groupdetails.GroupDetailsViewModel
 import com.bangreedy.splitsync.presentation.groupdetails.LedgerViewModel
 import com.bangreedy.splitsync.presentation.groups.GroupsViewModel
@@ -87,6 +89,9 @@ val appModule = module {
     single { FirestoreFriendsDataSource(get()) }
     single { FirestoreDirectThreadDataSource(get()) }
 
+    // NFC Tokens
+    single { FirestoreNfcTokenDataSource(get()) }
+
     // -------------------------
     // EXCHANGE RATE DATA SOURCES
     // -------------------------
@@ -131,6 +136,7 @@ val appModule = module {
     single<FriendRepository> { FriendRepositoryImpl(get(), get(), get(), get(), get()) }
     single<DirectThreadRepository> { DirectThreadRepositoryImpl(get(), get(), get()) }
     single<FriendActivityRepository> { FriendActivityRepositoryImpl(get(), get(), get(), get()) }
+    single<NfcFriendRepository> { NfcFriendRepositoryImpl(get(), get(), get(), get()) }
 
     // -------------------------
     // USE CASES
@@ -193,6 +199,10 @@ val appModule = module {
     factory { ObservePairwiseDebtBucketsUseCase(get(), get(), get()) }
     factory { BuildSettlementPlanUseCase(get()) }
     factory { ExecuteSettlementPlanUseCase(get(), get()) }
+
+    // NFC Friend
+    factory { CreateNfcFriendTokenUseCase(get()) }
+    factory { AcceptNfcFriendInviteUseCase(get()) }
 
     // -------------------------
     // SYNC LAYER (NEW PIPELINE)
@@ -273,6 +283,12 @@ val appModule = module {
     }
 
     // -------------------------
+    // NFC COORDINATOR
+    // -------------------------
+
+    single { NfcCoordinator() }
+
+    // -------------------------
     // VIEW MODELS
     // -------------------------
 
@@ -314,6 +330,9 @@ val appModule = module {
             suggestSettlements = get(),
             observePayments = get(),
             convertMoney = get(),
+            computeTotal = get(),
+            buildPlan = get(),
+            executePlan = get(),
             userProfileRepo = get(),
             auth = get()
         )
@@ -399,6 +418,16 @@ val appModule = module {
             buildPlan = get(),
             executePlan = get(),
             userProfileRepo = get(),
+            auth = get()
+        )
+    }
+
+    // NFC Friend
+    viewModel {
+        NfcFriendViewModel(
+            createToken = get(),
+            acceptInvite = get(),
+            nfcCoordinator = get(),
             auth = get()
         )
     }

@@ -23,6 +23,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun FriendsScreen(
     onFriendClick: (String) -> Unit = {},
+    onNfcClick: () -> Unit = {},
     vm: FriendsViewModel = koinViewModel()
 ) {
     val state by vm.state.collectAsState()
@@ -49,8 +50,16 @@ fun FriendsScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Friend")
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                SmallFloatingActionButton(onClick = onNfcClick) {
+                    Text("NFC", style = MaterialTheme.typography.labelSmall)
+                }
+                FloatingActionButton(onClick = { showAddDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Friend")
+                }
             }
         }
     ) { padding ->
