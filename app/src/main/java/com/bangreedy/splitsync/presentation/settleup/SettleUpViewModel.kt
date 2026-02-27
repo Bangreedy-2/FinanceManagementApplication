@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import com.bangreedy.splitsync.domain.model.Payment
 import com.bangreedy.splitsync.domain.usecase.ObservePaymentsUseCase
+import com.bangreedy.splitsync.presentation.common.isValidCurrency
 
 
 data class SettleUpUiState(
@@ -55,8 +56,8 @@ class SettleUpViewModel(
         viewModelScope.launch {
             observeMembers(groupId).collect { members ->
                 _state.update { s ->
-                    val fallbackFrom = members.firstOrNull()?.id.orEmpty()
-                    val fallbackTo = members.getOrNull(1)?.id.orEmpty()
+                    val fallbackFrom = members.firstOrNull()?.uid.orEmpty()
+                    val fallbackTo = members.getOrNull(1)?.uid.orEmpty()
 
                     val from = initialFromId.ifBlank { s.fromId.ifBlank { fallbackFrom } }
                     val to = initialToId.ifBlank { s.toId.ifBlank { fallbackTo } }
@@ -108,6 +109,10 @@ class SettleUpViewModel(
         _state.update { it.copy(amountText = v, error = null) }
     }
 
+    fun onCurrencyChange(v: String) {
+        _state.update { it.copy(currency = v, error = null) }
+    }
+
     private fun refreshSuggestedAmount() {
         val s = _state.value
         val from = s.fromId
@@ -142,6 +147,11 @@ class SettleUpViewModel(
         val amountMinor = parseToMinorUnits(s.amountText)
         if (amountMinor == null || amountMinor <= 0L) {
             _state.update { it.copy(error = "Enter a valid amount") }
+            return
+        }
+
+        if (!isValidCurrency(s.currency)) {
+            _state.update { it.copy(error = "Select a valid currency") }
             return
         }
 

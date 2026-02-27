@@ -25,4 +25,7 @@ interface GroupDao {
     @Query("UPDATE `groups` SET syncState = :newState WHERE id = :groupId")
     suspend fun setGroupSyncState(groupId: String, newState: Int)
 
+    @Query("SELECT name FROM `groups` WHERE id = :groupId LIMIT 1")
+    suspend fun getGroupName(groupId: String): String?
+
 }

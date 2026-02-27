@@ -21,4 +21,12 @@ interface PaymentDao {
 
     @Query("UPDATE payments SET syncState = :newState WHERE id = :paymentId")
     suspend fun setPaymentSyncState(paymentId: String, newState: Int)
+
+    /** All non-deleted payments across all contexts. Used by friend activity. */
+    @Query("SELECT * FROM payments WHERE deleted = 0 ORDER BY createdAt DESC")
+    fun observeAllPayments(): Flow<List<PaymentEntity>>
+
+    /** Payments for a specific context. */
+    @Query("SELECT * FROM payments WHERE contextType = :contextType AND contextId = :contextId AND deleted = 0")
+    fun observePaymentsByContext(contextType: String, contextId: String): Flow<List<PaymentEntity>>
 }

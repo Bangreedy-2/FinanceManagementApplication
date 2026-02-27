@@ -7,6 +7,7 @@ import com.bangreedy.splitsync.domain.model.Payment
 import com.bangreedy.splitsync.domain.repository.PaymentRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.json.JSONObject
 
 class PaymentRepositoryImpl(
     private val dao: PaymentDao
@@ -33,7 +34,14 @@ private fun PaymentEntity.toDomain(): Payment =
         currency = currency,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        deleted = deleted
+        deleted = deleted,
+        contextType = contextType,
+        contextId = contextId,
+        mode = mode,
+        breakdownByCurrency = breakdownJson?.let { parseBreakdownJson(it) },
+        ratesLastUpdatedAt = ratesLastUpdatedAt,
+        asOfDate = asOfDate,
+        settlementId = settlementId
     )
 
 private fun Payment.toEntity(syncState: Int): PaymentEntity =
@@ -47,5 +55,32 @@ private fun Payment.toEntity(syncState: Int): PaymentEntity =
         createdAt = createdAt,
         updatedAt = updatedAt,
         deleted = deleted,
-        syncState = syncState
+        syncState = syncState,
+        contextType = contextType,
+        contextId = contextId,
+        mode = mode,
+        breakdownJson = breakdownByCurrency?.let { toBreakdownJson(it) },
+        ratesLastUpdatedAt = ratesLastUpdatedAt,
+        asOfDate = asOfDate,
+        settlementId = settlementId
     )
+
+private fun parseBreakdownJson(json: String): Map<String, Long> {
+    return try {
+        val obj = JSONObject(json)
+        val map = mutableMapOf<String, Long>()
+        val keys: Iterator<String> = obj.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            map[key] = obj.getLong(key)
+        }
+        map
+    } catch (_: Throwable) { emptyMap() }
+}
+
+private fun toBreakdownJson(map: Map<String, Long>): String {
+    val obj = JSONObject()
+    map.forEach { (k, v) -> obj.put(k, v) }
+    return obj.toString()
+}
+

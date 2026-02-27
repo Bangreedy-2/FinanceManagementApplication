@@ -18,26 +18,29 @@ class GroupSyncManager(
 
     private var groupsListener: ListenerRegistration? = null
 
-    fun start(userId: String, onGroupIdsChanged: (Set<String>) -> Unit)
-    {
-        // avoid duplicate listeners
+    fun start(userId: String, onGroupIdsChanged: (Set<String>) -> Unit) {
         groupsListener?.remove()
 
         groupsListener = remote.listenGroupsForUser(
             userId = userId,
             onChange = { docs ->
+                val groupIds = docs.map { it.id }.toSet()
+                onGroupIdsChanged(groupIds)
+
                 docs.forEach { doc ->
                     val id = doc.id
                     val name = doc.getString("name") ?: return@forEach
+                    val photoUrl = doc.getString("photoUrl")
                     val createdAt = doc.getLong("createdAt") ?: 0L
                     val updatedAt = doc.getLong("updatedAt") ?: createdAt
                     val deleted = doc.getBoolean("deleted") ?: false
-                    onGroupIdsChanged(docs.map { it.id }.toSet())
+
                     scope.launch {
                         groupDao.upsert(
                             GroupEntity(
                                 id = id,
                                 name = name,
+                                photoUrl = photoUrl,
                                 createdAt = createdAt,
                                 updatedAt = updatedAt,
                                 deleted = deleted,
@@ -51,22 +54,38 @@ class GroupSyncManager(
         )
     }
 
+
     suspend fun pushDirtyGroups(userId: String) {
         val dirty = groupDao.getDirtyGroups(SyncState.DIRTY)
 
         for (g in dirty) {
             val data = mapOf(
                 "name" to g.name,
+                "photoUrl" to g.photoUrl,
                 "createdAt" to g.createdAt,
                 "updatedAt" to g.updatedAt,
                 "deleted" to g.deleted,
-                "memberUserIds" to listOf(userId) // required for query
+                "memberUserIds" to listOf(userId)
             )
 
             remote.upsertGroup(g.id, data)
+
+            // ✅ ensure creator exists as a member document
+            remote.upsertGroupMember(
+                groupId = g.id,
+                uid = userId,
+                data = mapOf(
+                    "uid" to userId,
+                    "role" to "owner",
+                    "joinedAt" to System.currentTimeMillis(),
+                    "deleted" to false
+                )
+            )
+
             groupDao.setGroupSyncState(g.id, SyncState.SYNCED)
         }
     }
+
 
     fun stop() {
         groupsListener?.remove()

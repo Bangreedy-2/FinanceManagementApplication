@@ -31,4 +31,13 @@ class FirestoreGroupDataSource(
             .set(data, SetOptions.merge())
             .await()
     }
+    suspend fun upsertGroupMember(groupId: String, uid: String, data: Map<String, Any?>) {
+        firestore.collection("groups")
+            .document(groupId)
+            .collection("members")
+            .document(uid)
+            .set(data, SetOptions.merge())
+            .await()
+    }
+
 }

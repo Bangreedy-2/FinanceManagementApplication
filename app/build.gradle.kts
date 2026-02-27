@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation(libs.firebase.storage)
     implementation(libs.kotlinx.coroutines.play.services)
     // Room
     implementation(libs.room.runtime)
@@ -66,6 +67,8 @@ dependencies {
     implementation(libs.koin.androidx.compose)
     //Navigation
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.coil.compose)
+    implementation(libs.zxing.core)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

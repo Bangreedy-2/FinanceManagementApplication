@@ -13,58 +13,60 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class PaymentSyncManager(
-    private val groupDataSource: FirestoreGroupDataSource,
     private val paymentDataSource: FirestorePaymentDataSource,
     private val paymentDao: PaymentDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val paymentListeners = mutableMapOf<String, ListenerRegistration>()
 
-    private var groupsListener: ListenerRegistration? = null
-    private val paymentListeners = mutableMapOf<String, ListenerRegistration>() // groupId -> listener
+    fun onGroupsChanged(groupIds: Set<String>) {
+        groupIds.forEach { groupId ->
+            if (paymentListeners.containsKey(groupId)) return@forEach
+            val reg = paymentDataSource.listenPaymentsForGroup(
+                groupId = groupId,
+                onChange = { docs -> onPaymentsChanged(groupId, docs) },
+                onError = { /* TODO log */ }
+            )
+            paymentListeners[groupId] = reg
+        }
 
-    fun start(userId: String) {
-        if (groupsListener != null) return
-
-        groupsListener = groupDataSource.listenGroupsForUser(
-            userId = userId,
-            onChange = { groupDocs ->
-                val groupIds = groupDocs.map { it.id }.toSet()
-
-                groupIds.forEach { groupId ->
-                    if (paymentListeners.containsKey(groupId)) return@forEach
-
-                    val reg = paymentDataSource.listenPaymentsForGroup(
-                        groupId = groupId,
-                        onChange = { paymentDocs ->
-                            onPaymentsChanged(groupId, paymentDocs)
-                        },
-                        onError = { /* log if you want */ }
-                    )
-                    paymentListeners[groupId] = reg
-                }
-
-                val toRemove = paymentListeners.keys - groupIds
-                toRemove.forEach { gid ->
-                    paymentListeners.remove(gid)?.remove()
-                }
-            },
-            onError = { /* log if you want */ }
-        )
+        val toRemove = paymentListeners.keys - groupIds
+        toRemove.forEach { gid ->
+            paymentListeners.remove(gid)?.remove()
+        }
     }
+
+    fun stop() {
+        paymentListeners.values.forEach { it.remove() }
+        paymentListeners.clear()
+    }
+
 
     suspend fun pushDirtyPayments() {
         val dirty = paymentDao.getDirtyPayments(SyncState.DIRTY)
 
         for (p in dirty) {
-            val data = mapOf(
+            val data = mutableMapOf<String, Any?>(
                 "fromMemberId" to p.fromMemberId,
                 "toMemberId" to p.toMemberId,
                 "amountMinor" to p.amountMinor,
                 "currency" to p.currency,
                 "createdAt" to p.createdAt,
                 "updatedAt" to p.updatedAt,
-                "deleted" to p.deleted
+                "deleted" to p.deleted,
+                "mode" to p.mode
             )
+            if (p.breakdownJson != null) {
+                try {
+                    val obj = org.json.JSONObject(p.breakdownJson)
+                    val map = mutableMapOf<String, Long>()
+                    obj.keys().forEach { key -> map[key] = obj.getLong(key) }
+                    data["breakdownByCurrency"] = map
+                } catch (_: Throwable) {}
+            }
+            if (p.ratesLastUpdatedAt != null) data["ratesLastUpdatedAt"] = p.ratesLastUpdatedAt
+            if (p.asOfDate != null) data["asOfDate"] = p.asOfDate
+            if (p.settlementId != null) data["settlementId"] = p.settlementId
 
             paymentDataSource.upsertPayment(
                 groupId = p.groupId,
@@ -87,6 +89,18 @@ class PaymentSyncManager(
             val createdAt = doc.getLong("createdAt") ?: 0L
             val updatedAt = doc.getLong("updatedAt") ?: createdAt
             val deleted = doc.getBoolean("deleted") ?: false
+            val mode = doc.getString("mode") ?: "ONE_CURRENCY"
+            val ratesLastUpdatedAt = doc.getLong("ratesLastUpdatedAt")
+            val asOfDate = doc.getString("asOfDate")
+            val settlementId = doc.getString("settlementId")
+
+            @Suppress("UNCHECKED_CAST")
+            val breakdownMap = doc.get("breakdownByCurrency") as? Map<String, Long>
+            val breakdownJson = breakdownMap?.let { map ->
+                val obj = org.json.JSONObject()
+                map.forEach { (k, v) -> obj.put(k, v) }
+                obj.toString()
+            }
 
             scope.launch {
                 paymentDao.upsert(
@@ -100,7 +114,14 @@ class PaymentSyncManager(
                         createdAt = createdAt,
                         updatedAt = updatedAt,
                         deleted = deleted,
-                        syncState = SyncState.SYNCED
+                        syncState = SyncState.SYNCED,
+                        contextType = "GROUP",
+                        contextId = groupId,
+                        mode = mode,
+                        breakdownJson = breakdownJson,
+                        ratesLastUpdatedAt = ratesLastUpdatedAt,
+                        asOfDate = asOfDate,
+                        settlementId = settlementId
                     )
                 )
             }

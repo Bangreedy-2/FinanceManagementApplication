@@ -2,27 +2,47 @@ package com.bangreedy.splitsync.data.sync
 
 class SyncCoordinator(
     private val groupSyncManager: GroupSyncManager,
-    private val memberSyncManager: MemberSyncManager,
+    private val groupMemberSyncManager: GroupMemberSyncManager,
+    private val userProfileSyncManager: UserProfileSyncManager,
     private val expenseSyncManager: ExpenseSyncManager,
-    private val paymentSyncManager: PaymentSyncManager
+    private val paymentSyncManager: PaymentSyncManager,
+    private val notificationSyncManager: NotificationSyncManager,
+    private val friendSyncManager: FriendSyncManager,
+    private val directThreadSyncManager: DirectThreadSyncManager
 ) {
     fun start(userId: String) {
+        // Sync the current user's own profile to Room so it's available for name resolution
+        userProfileSyncManager.refreshUids(listOf(userId))
+
         groupSyncManager.start(userId) { groupIds ->
-            memberSyncManager.startForGroups(groupIds)
+            groupMemberSyncManager.onGroupsChanged(groupIds)
+            expenseSyncManager.onGroupsChanged(groupIds)
+            paymentSyncManager.onGroupsChanged(groupIds)
+            userProfileSyncManager.onGroupsChanged(groupIds)
         }
-        expenseSyncManager.start(userId)
-        paymentSyncManager.start(userId)
+        notificationSyncManager.start(userId)
+
+        // Friends sync
+        directThreadSyncManager.setMyUid(userId)
+        friendSyncManager.onAcceptedFriendsChanged = { acceptedFriendUids ->
+            directThreadSyncManager.onAcceptedFriendsChanged(acceptedFriendUids)
+        }
+        friendSyncManager.start(userId)
     }
 
     suspend fun pushNow(userId: String) {
         groupSyncManager.pushDirtyGroups(userId)
-        memberSyncManager.pushDirtyMembers()
         expenseSyncManager.pushDirtyExpenses()
         paymentSyncManager.pushDirtyPayments()
     }
 
     fun stop() {
         groupSyncManager.stop()
-        memberSyncManager.stop()
+        groupMemberSyncManager.stop()
+        expenseSyncManager.stop()
+        paymentSyncManager.stop()
+        notificationSyncManager.stop()
+        friendSyncManager.stop()
+        directThreadSyncManager.stop()
     }
 }

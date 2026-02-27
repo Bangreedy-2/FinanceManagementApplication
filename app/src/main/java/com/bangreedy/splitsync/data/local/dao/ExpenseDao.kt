@@ -34,5 +34,33 @@ interface ExpenseDao {
     @Query("SELECT * FROM expense_splits WHERE expenseId = :expenseId")
     suspend fun getSplitsForExpense(expenseId: String): List<com.bangreedy.splitsync.data.local.entity.ExpenseSplitEntity>
 
+    @Query("""
+    SELECT COUNT(*)
+    FROM expenses e
+    LEFT JOIN user_profiles up ON up.uid = e.payerMemberId
+    WHERE e.deleted = 0
+      AND e.payerMemberId IS NOT NULL
+      AND e.payerMemberId != ''
+      AND up.uid IS NULL
+""")
+    suspend fun countExpensesWithMissingPayerProfiles(): Int
+
+    @Query("""
+    SELECT COUNT(*)
+    FROM expense_splits es
+    LEFT JOIN user_profiles up ON up.uid = es.memberId
+    WHERE up.uid IS NULL
+""")
+    suspend fun countSplitsWithMissingProfiles(): Int
+
+    /** All non-deleted expenses across all contexts (groups + direct). Used by friend activity. */
+    @Transaction
+    @Query("SELECT * FROM expenses WHERE deleted = 0 ORDER BY createdAt DESC")
+    fun observeAllExpensesWithSplits(): Flow<List<ExpenseWithSplits>>
+
+    /** Expenses for a specific context (DIRECT thread or GROUP). */
+    @Transaction
+    @Query("SELECT * FROM expenses WHERE contextType = :contextType AND contextId = :contextId AND deleted = 0 ORDER BY createdAt DESC")
+    fun observeExpensesByContext(contextType: String, contextId: String): Flow<List<ExpenseWithSplits>>
 }
 

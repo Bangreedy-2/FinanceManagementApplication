@@ -9,6 +9,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.bangreedy.splitsync.core.money.formatMinor
 import com.bangreedy.splitsync.domain.model.Member
+import com.bangreedy.splitsync.presentation.common.CurrencyPickerField
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -58,6 +59,12 @@ fun SettleUpScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        CurrencyPickerField(
+            value = state.currency,
+            onCurrencyChanged = vm::onCurrencyChange,
+            modifier = Modifier.fillMaxWidth()
+        )
+
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -80,7 +87,7 @@ private fun PersonPicker(
     onPick: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val selectedName = members.firstOrNull { it.id == selectedId }?.displayName ?: "Select"
+    val selectedName = members.firstOrNull { it.uid == selectedId }?.displayName ?: "Select"
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
@@ -96,7 +103,7 @@ private fun PersonPicker(
                 DropdownMenuItem(
                     text = { Text(m.displayName) },
                     onClick = {
-                        onPick(m.id)
+                        onPick(m.uid)
                         expanded = false
                     }
                 )

@@ -5,7 +5,6 @@ import com.bangreedy.splitsync.data.local.entity.ExpenseEntity
 import com.bangreedy.splitsync.data.local.entity.ExpenseSplitEntity
 import com.bangreedy.splitsync.data.local.entity.SyncState
 import com.bangreedy.splitsync.data.remote.firestore.FirestoreExpenseDataSource
-import com.bangreedy.splitsync.data.remote.firestore.FirestoreGroupDataSource
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
@@ -14,46 +13,32 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class ExpenseSyncManager(
-    private val groupDataSource: FirestoreGroupDataSource,
     private val expenseDataSource: FirestoreExpenseDataSource,
     private val expenseDao: ExpenseDao
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val expenseListeners = mutableMapOf<String, ListenerRegistration>() // groupId -> reg
 
-    private var groupsListener: ListenerRegistration? = null
-    private val expenseListeners = mutableMapOf<String, ListenerRegistration>() // groupId -> listener
+    fun onGroupsChanged(groupIds: Set<String>) {
+        groupIds.forEach { groupId ->
+            if (expenseListeners.containsKey(groupId)) return@forEach
+            val reg = expenseDataSource.listenExpensesForGroup(
+                groupId = groupId,
+                onChange = { docs -> onExpensesChanged(groupId, docs) },
+                onError = { /* TODO log */ }
+            )
+            expenseListeners[groupId] = reg
+        }
 
-    fun start(userId: String) {
-        // Avoid duplicate listeners if start() called again
-        if (groupsListener != null) return
+        val toRemove = expenseListeners.keys - groupIds
+        toRemove.forEach { gid ->
+            expenseListeners.remove(gid)?.remove()
+        }
+    }
 
-        groupsListener = groupDataSource.listenGroupsForUser(
-            userId = userId,
-            onChange = { groupDocs ->
-                val groupIds = groupDocs.map { it.id }.toSet()
-
-                // Start expense listener per group
-                groupIds.forEach { groupId ->
-                    if (expenseListeners.containsKey(groupId)) return@forEach
-
-                    val reg = expenseDataSource.listenExpensesForGroup(
-                        groupId = groupId,
-                        onChange = { expenseDocs ->
-                            onExpensesChanged(groupId, expenseDocs)
-                        },
-                        onError = { /* log if you want */ }
-                    )
-                    expenseListeners[groupId] = reg
-                }
-
-                // Remove listeners for groups no longer present
-                val toRemove = expenseListeners.keys - groupIds
-                toRemove.forEach { gid ->
-                    expenseListeners.remove(gid)?.remove()
-                }
-            },
-            onError = { /* log if you want */ }
-        )
+    fun stop() {
+        expenseListeners.values.forEach { it.remove() }
+        expenseListeners.clear()
     }
 
     /**
